@@ -31,10 +31,10 @@ Server (Go, PocketBase)
 
 기술 스택
 - React.js (TypeScript)
-- 인증: PocketBase JS SDK
-- 라우팅: TanStack Router
-- 상태 관리: React Query (TanStack Query) + Zustand (optional)
-- UI: shadcn-ui + Tailwind
+- Auth: PocketBase JS SDK
+- Routing: TanStack Router
+- Stores: React Query (TanStack Query) + Zustand (optional)
+- UI library: shadcn-ui + Tailwind(v4)
 
 ### 2.2 Server (Go, PocketBase)
 역할
