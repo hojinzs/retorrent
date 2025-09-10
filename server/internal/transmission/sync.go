@@ -13,7 +13,7 @@ import (
 // SyncService handles periodic synchronization between Transmission and PocketBase
 type SyncService struct {
 	app           core.App
-	client        *Client
+	client        TransmissionClient
 	interval      time.Duration
 	ctx           context.Context
 	cancel        context.CancelFunc
@@ -23,7 +23,7 @@ type SyncService struct {
 }
 
 // NewSyncService creates a new sync service
-func NewSyncService(app core.App, client *Client, interval time.Duration) *SyncService {
+func NewSyncService(app core.App, client TransmissionClient, interval time.Duration) *SyncService {
 	ctx, cancel := context.WithCancel(context.Background())
 	
 	return &SyncService{

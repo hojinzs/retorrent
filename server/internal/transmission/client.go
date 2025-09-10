@@ -167,7 +167,7 @@ func (c *Client) RemoveTorrents(ctx context.Context, ids []int64, deleteLocalDat
 }
 
 // GetSessionStats gets transmission session statistics
-func (c *Client) GetSessionStats(ctx context.Context) (*transmissionrpc.SessionStats, error) {
+func (c *Client) GetSessionStats(ctx context.Context) (interface{}, error) {
 	stats, err := c.client.SessionStats(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get session stats: %w", err)
