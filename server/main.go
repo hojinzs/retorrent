@@ -4,6 +4,7 @@ import (
     "log"
     "os"
     "strings"
+    "time"
 
     "github.com/pocketbase/pocketbase"
     "github.com/pocketbase/pocketbase/apis"
@@ -11,16 +12,79 @@ import (
     "github.com/pocketbase/pocketbase/plugins/migratecmd"
 
     _ "backend/migrations"
+    "backend/internal/transmission"
 )
 
 func main() {
     app := pocketbase.New()
 
+    // Global variables for transmission client and sync service
+    var transmissionClient *transmission.Client
+    var syncService *transmission.SyncService
+
+    // Initialize Transmission client and sync service after server starts
     app.OnServe().BindFunc(func(se *core.ServeEvent) error {
+        // Initialize Transmission client
+        transmissionHost := os.Getenv("TRANSMISSION_HOST")
+        if transmissionHost == "" {
+            transmissionHost = "http://localhost:9091/transmission/rpc"
+        }
+        
+        transmissionUser := os.Getenv("TRANSMISSION_USER")
+        transmissionPass := os.Getenv("TRANSMISSION_PASS")
+
+        client, err := transmission.NewClient(app, transmissionHost, transmissionUser, transmissionPass)
+        if err != nil {
+            log.Printf("Warning: Failed to initialize Transmission client: %v", err)
+            log.Println("Transmission sync will be disabled. Check TRANSMISSION_HOST, TRANSMISSION_USER, TRANSMISSION_PASS environment variables.")
+        } else {
+            transmissionClient = client
+            log.Println("Transmission client initialized successfully")
+
+            // Initialize sync service
+            syncInterval := 5 * time.Second // Sync every 5 seconds for real-time feel
+            syncService = transmission.NewSyncService(app, transmissionClient, syncInterval)
+            
+            // Start sync service
+            if err := syncService.Start(); err != nil {
+                log.Printf("Failed to start sync service: %v", err)
+            } else {
+                log.Println("Transmission sync service started")
+            }
+        }
+
+        // Add API routes for torrent operations
+        se.Router.GET("/api/torrents", func(re *core.RequestEvent) error {
+            // This will be handled by PocketBase's built-in REST API for the torrents collection
+            // But we could add custom logic here if needed
+            return re.Next()
+        })
+
+        // Custom API endpoint to force sync
+        se.Router.POST("/api/torrents/sync", func(re *core.RequestEvent) error {
+            if syncService == nil {
+                return re.JSON(503, map[string]string{"error": "Transmission client not available"})
+            }
+            
+            if err := syncService.ForceSync(); err != nil {
+                return re.JSON(500, map[string]string{"error": err.Error()})
+            }
+            
+            return re.JSON(200, map[string]string{"message": "Sync completed"})
+        })
+
         // serves static files from the provided public dir (if exists)
         se.Router.GET("/{path...}", apis.Static(os.DirFS("./pb_public"), false))
 
         return se.Next()
+    })
+
+    // Cleanup on shutdown
+    app.OnTerminate().BindFunc(func(te *core.TerminateEvent) error {
+        if syncService != nil {
+            syncService.Stop()
+        }
+        return te.Next()
     })
 
     // loosely check if it was executed using "go run"
@@ -31,7 +95,6 @@ func main() {
         // (the isGoRun check is to enable it only during development)
         Automigrate: isGoRun,
     })
-
 
     if err := app.Start(); err != nil {
         log.Fatal(err)

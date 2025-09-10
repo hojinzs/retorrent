@@ -8,7 +8,7 @@ import {
   redirect,
   useRouterState,
 } from '@tanstack/react-router'
-import Downloads from './pages/Downloads'
+import { DownloadsPage } from './pages/DownloadsPage'
 import Login from './pages/Login'
 import Preferences from './pages/Preferences'
 import { Tabs, TabsList, TabsTrigger } from '@shared/components/ui/tabs'
@@ -83,7 +83,7 @@ const indexRoute = createRoute({
 const downloadsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/downloads',
-  component: Downloads,
+  component: DownloadsPage,
 })
 
 const prefsRoute = createRoute({
