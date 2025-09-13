@@ -43,25 +43,25 @@ func main() {
             cancel()
 
             if testErr != nil {
-//                 log.Printf("Warning: Failed to connect to Transmission: %v", testErr)
-//                 log.Println("Falling back to demo mode with mock data...")
+                log.Printf("Warning: Failed to connect to Transmission: %v", testErr)
+                log.Println("Falling back to demo mode with mock data...")
 
                 // Use mock client for demo
                 mockClient := transmission.NewMockClient(app)
                 transmissionClient = mockClient
-//                 log.Println("Mock Transmission client initialized for demo")
+                log.Println("Mock Transmission client initialized for demo")
             } else {
                 transmissionClient = client
-//                 log.Println("Transmission client initialized successfully")
+                log.Println("Transmission client initialized successfully")
             }
         } else {
-//             log.Printf("Warning: Failed to initialize Transmission client: %v", err)
-//             log.Println("Falling back to demo mode with mock data...")
+            log.Printf("Warning: Failed to initialize Transmission client: %v", err)
+            log.Println("Falling back to demo mode with mock data...")
 
             // Use mock client for demo
             mockClient := transmission.NewMockClient(app)
             transmissionClient = mockClient
-//             log.Println("Mock Transmission client initialized for demo")
+            log.Println("Mock Transmission client initialized for demo")
         }
 
         // Initialize sync service with either real or mock client
