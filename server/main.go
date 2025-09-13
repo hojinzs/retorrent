@@ -30,10 +30,10 @@ func main() {
         if transmissionHost == "" {
             transmissionHost = "http://localhost:9091/transmission/rpc"
         }
-        
+
         transmissionUser := os.Getenv("TRANSMISSION_USER")
         transmissionPass := os.Getenv("TRANSMISSION_PASS")
-        
+
         // Try to connect to real Transmission first
         client, err := transmission.NewClient(app, transmissionHost, transmissionUser, transmissionPass)
         if err == nil {
@@ -41,33 +41,33 @@ func main() {
             ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
             _, testErr := client.GetTorrents(ctx)
             cancel()
-            
+
             if testErr != nil {
-                log.Printf("Warning: Failed to connect to Transmission: %v", testErr)
-                log.Println("Falling back to demo mode with mock data...")
-                
+//                 log.Printf("Warning: Failed to connect to Transmission: %v", testErr)
+//                 log.Println("Falling back to demo mode with mock data...")
+
                 // Use mock client for demo
                 mockClient := transmission.NewMockClient(app)
                 transmissionClient = mockClient
-                log.Println("Mock Transmission client initialized for demo")
+//                 log.Println("Mock Transmission client initialized for demo")
             } else {
                 transmissionClient = client
-                log.Println("Transmission client initialized successfully")
+//                 log.Println("Transmission client initialized successfully")
             }
         } else {
-            log.Printf("Warning: Failed to initialize Transmission client: %v", err)
-            log.Println("Falling back to demo mode with mock data...")
-            
+//             log.Printf("Warning: Failed to initialize Transmission client: %v", err)
+//             log.Println("Falling back to demo mode with mock data...")
+
             // Use mock client for demo
             mockClient := transmission.NewMockClient(app)
             transmissionClient = mockClient
-            log.Println("Mock Transmission client initialized for demo")
+//             log.Println("Mock Transmission client initialized for demo")
         }
 
         // Initialize sync service with either real or mock client
         syncInterval := 5 * time.Second // Sync every 5 seconds for real-time feel
         syncService = transmission.NewSyncService(app, transmissionClient, syncInterval)
-        
+
         // Start sync service
         if err := syncService.Start(); err != nil {
             log.Printf("Failed to start sync service: %v", err)
@@ -87,11 +87,11 @@ func main() {
             if syncService == nil {
                 return re.JSON(503, map[string]string{"error": "Transmission client not available"})
             }
-            
+
             if err := syncService.ForceSync(); err != nil {
                 return re.JSON(500, map[string]string{"error": err.Error()})
             }
-            
+
             return re.JSON(200, map[string]string{"message": "Sync completed"})
         })
 

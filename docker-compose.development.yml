@@ -1,0 +1,26 @@
+version: "3.8"
+
+services:
+  transmission:
+    image: ghcr.io/linuxserver/transmission
+    container_name: transmission
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Asia/Seoul
+      # 개발 테스트 시 편의를 위해 계정은 비워둘 수 있습니다.
+      # 필요 시 .env 파일에 TRANSMISSION_USER, TRANSMISSION_PASS 를 설정하세요.
+      # - USER=${TRANSMISSION_USER:-}
+      # - PASS=${TRANSMISSION_PASS:-}
+    volumes:
+      - config:/config
+      - downloads:/downloads
+    ports:
+      - "9091:9091"      # Web UI
+      - "51413:51413"    # BitTorrent TCP
+      - "51413:51413/udp"# BitTorrent UDP (DHT)
+    # restart: unless-stopped
+
+volumes:
+  config:
+  downloads:

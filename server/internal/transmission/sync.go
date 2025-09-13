@@ -38,20 +38,14 @@ func NewSyncService(app core.App, client TransmissionClient, interval time.Durat
 // Start begins the periodic synchronization
 func (s *SyncService) Start() error {
 	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	if s.isRunning {
+		s.mu.Unlock()
 		return fmt.Errorf("sync service is already running")
 	}
-
 	s.isRunning = true
+	s.mu.Unlock()
 	
 	log.Printf("Starting Transmission sync service with interval: %v", s.interval)
-	
-	// Run initial sync
-	if err := s.syncOnce(); err != nil {
-		log.Printf("Initial sync failed: %v", err)
-	}
 
 	// Start periodic sync
 	go s.syncLoop()
@@ -89,6 +83,11 @@ func (s *SyncService) LastSyncTime() time.Time {
 
 // syncLoop runs the periodic synchronization
 func (s *SyncService) syncLoop() {
+	// Run initial sync immediately
+	if err := s.syncOnce(); err != nil {
+		log.Printf("Initial sync failed: %v", err)
+	}
+
 	ticker := time.NewTicker(s.interval)
 	defer ticker.Stop()
 
@@ -109,8 +108,16 @@ func (s *SyncService) syncLoop() {
 func (s *SyncService) syncOnce() error {
 	log.Println("Starting Transmission sync...")
 	
+	// Add a timeout to the context
+	ctx, cancel := context.WithTimeout(s.ctx, 10*time.Second)
+	defer cancel()
+
 	// Get torrents from Transmission
-	torrents, err := s.client.GetTorrents(s.ctx)
+	torrents, err := s.client.GetTorrents(ctx)
+
+	log.Println("Torrents", len(torrents))
+	log.Println("Error", err)
+
 	if err != nil {
 		return fmt.Errorf("failed to get torrents from Transmission: %w", err)
 	}
@@ -130,17 +137,20 @@ func (s *SyncService) syncOnce() error {
 
 // updateTorrentsInDB updates the torrents collection in PocketBase
 func (s *SyncService) updateTorrentsInDB(torrents []*TorrentData) error {
+	log.Println("Updating torrents in DB...")
 	collection, err := s.app.FindCollectionByNameOrId("torrents")
 	if err != nil {
 		return fmt.Errorf("torrents collection not found: %w", err)
 	}
 
+	log.Println("Fetching existing torrent records from database...")
 	// Get existing torrents by hash
 	existingTorrents := make(map[string]*core.Record)
 	records, err := s.app.FindRecordsByFilter(collection, "", "", 0, 0, nil)
 	if err != nil {
 		return fmt.Errorf("failed to fetch existing torrents: %w", err)
 	}
+	log.Printf("Fetched %d existing torrent records.", len(records))
 
 	for _, record := range records {
 		hash := record.GetString("hash")
@@ -152,6 +162,7 @@ func (s *SyncService) updateTorrentsInDB(torrents []*TorrentData) error {
 	// Track current transmission torrent hashes
 	currentHashes := make(map[string]bool)
 
+	log.Println("Processing torrents from Transmission...")
 	// Update or create torrents
 	for _, torrent := range torrents {
 		currentHashes[torrent.HashString] = true
@@ -171,7 +182,9 @@ func (s *SyncService) updateTorrentsInDB(torrents []*TorrentData) error {
 			}
 		}
 	}
+	log.Println("Finished processing torrents from Transmission.")
 
+	log.Println("Checking for torrents removed from Transmission...")
 	// Mark removed torrents as inactive or delete them
 	for hash, record := range existingTorrents {
 		if !currentHashes[hash] {
@@ -184,6 +197,7 @@ func (s *SyncService) updateTorrentsInDB(torrents []*TorrentData) error {
 			}
 		}
 	}
+	log.Println("Finished checking for removed torrents.")
 
 	return nil
 }
