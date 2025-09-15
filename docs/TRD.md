@@ -176,8 +176,8 @@ CLIENT_ORIGIN=https://example.com
 
 도커 빌드 시나리오
 1. web 정적 파일 빌드
-2. server/pb_public 으로 이동
-3. server 빌드
+2. server 빌드
+3. 빌드된 web 정적 파일을 server/pb_public으로 옮겨 정적 파일 서비스
 
 운영 팁
 - pb_data는 반드시 볼륨으로 마운트 후 정기 백업
