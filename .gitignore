@@ -1,2 +1,10 @@
 .env
 .env.*
+
+# Build outputs
+server/transmission-server
+web/dist/
+web/node_modules/
+
+# PocketBase data
+server/pb_data/

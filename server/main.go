@@ -10,11 +10,12 @@ import (
     "github.com/pocketbase/pocketbase"
     "github.com/pocketbase/pocketbase/apis"
     "github.com/pocketbase/pocketbase/core"
-    "github.com/pocketbase/pocketbase/plugins/migratecmd"
+   	"github.com/pocketbase/pocketbase/plugins/migratecmd"
 
-    _ "backend/migrations"
-    "backend/internal/transmission"
-)
+   	_ "backend/migrations"
+   	"backend/internal/transmission"
+   	"backend/users"
+   )
 
 func main() {
     app := pocketbase.New()
@@ -94,6 +95,9 @@ func main() {
 
             return re.JSON(200, map[string]string{"message": "Sync completed"})
         })
+
+        // Register user-related routes
+        users.RegisterRoutes(app, se)
 
         // serves static files from the provided public dir (if exists)
         se.Router.GET("/{path...}", apis.Static(os.DirFS("./pb_public"), false))
