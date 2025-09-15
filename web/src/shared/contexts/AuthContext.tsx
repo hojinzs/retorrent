@@ -11,11 +11,11 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<RecordModel | null>(pb.authStore.model);
+  const [user, setUser] = useState<RecordModel | null>(pb.authStore.record);
 
   useEffect(() => {
     const unsubscribe = pb.authStore.onChange(() => {
-      setUser(pb.authStore.model);
+      setUser(pb.authStore.record);
     });
 
     return () => {

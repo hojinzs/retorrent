@@ -7,6 +7,7 @@ import {
   createRouter,
   redirect,
   useRouterState,
+  useNavigate,
 } from '@tanstack/react-router'
 import { DownloadsPage } from './pages/DownloadsPage'
 import Login from './pages/Login'
@@ -22,9 +23,11 @@ import { LoadingSpinner } from '@shared/components/LoadingSpinner'
 function AppLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const { logout, user } = useAuth()
+  const navigate = useNavigate()
 
   const handleLogout = () => {
     logout()
+    navigate({ to: '/login' })
   }
 
   return (
