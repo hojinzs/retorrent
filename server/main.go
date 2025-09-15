@@ -173,10 +173,10 @@ func main() {
 
             // Remove torrents
             ctx := re.Request.Context()
+            log.Printf("Removing torrents with IDs: %v, deleteLocalData: %v", request.IDs, deleteLocalData)
             if err := transmissionClient.RemoveTorrents(ctx, request.IDs, deleteLocalData); err != nil {
                 return re.JSON(400, map[string]string{"error": err.Error()})
             }
-
             // Force sync to update the database
             if err := syncService.ForceSync(); err != nil {
                 log.Printf("Failed to sync after removing torrents: %v", err)
@@ -189,21 +189,38 @@ func main() {
         })
 
         // API endpoint for torrent actions (backward compatibility)
-        se.Router.POST("/api/torrents/:id/action", func(re *core.RequestEvent) error {
+        // Supports both POST (JSON body) and GET (query params) for convenience
+        se.Router.POST("/api/torrents/{id}/action", func(re *core.RequestEvent) error {
             if transmissionClient == nil {
                 return re.JSON(503, map[string]string{"error": "Transmission client not available"})
             }
 
             // Parse torrent ID from URL
             torrentID := re.Request.PathValue("id")
+
             if torrentID == "" {
                 return re.JSON(400, map[string]string{"error": "Torrent ID is required"})
             }
 
-            // Convert to int64
+            log.Printf("torrentID %v", torrentID)
+
+            // Resolve to Transmission ID (accepts numeric Transmission ID or PocketBase record id)
             var id int64
             if _, err := fmt.Sscanf(torrentID, "%d", &id); err != nil {
-                return re.JSON(400, map[string]string{"error": "Invalid torrent ID"})
+                // Not a number; try treating as PocketBase record id
+                collection, cerr := app.FindCollectionByNameOrId("torrents")
+                if cerr != nil {
+                    return re.JSON(400, map[string]string{"error": "Invalid torrent ID"})
+                }
+                rec, rerr := app.FindRecordById(collection, torrentID, nil)
+                if rerr != nil {
+                    return re.JSON(404, map[string]string{"error": "Torrent not found"})
+                }
+                // transmissionId is stored as number in the record
+                id = int64(rec.GetInt("transmissionId"))
+                if id == 0 {
+                    return re.JSON(400, map[string]string{"error": "Record missing transmissionId"})
+                }
             }
 
             // Parse request body
@@ -256,7 +273,16 @@ func main() {
         users.RegisterRoutes(app, se)
 
         // serves static files from the provided public dir (if exists)
-        se.Router.GET("/{path...}", apis.Static(os.DirFS("./pb_public"), false))
+        // Note: avoid intercepting API routes with the catch-all static handler
+        se.Router.GET("/{path...}", func(re *core.RequestEvent) error {
+            // If path starts with /api, let other handlers process it (prevents 404)
+            p := re.Request.URL.Path
+            if strings.HasPrefix(p, "/api/") {
+                return re.Next()
+            }
+            // Otherwise, serve static assets
+            return apis.Static(os.DirFS("./pb_public"), false)(re)
+        })
 
         return se.Next()
     })

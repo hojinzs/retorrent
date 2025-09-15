@@ -39,7 +39,12 @@ export function useTorrents() {
       if (e.action === 'create') {
         setTorrents(prev => [record, ...prev])
       } else if (e.action === 'update') {
-        setTorrents(prev => prev.map(t => t.id === record.id ? record : t))
+        // If a torrent gets marked as removed, drop it from the list immediately
+        if ((record as any).status === 'removed') {
+          setTorrents(prev => prev.filter(t => t.id !== record.id))
+        } else {
+          setTorrents(prev => prev.map(t => t.id === record.id ? record : t))
+        }
       } else if (e.action === 'delete') {
         setTorrents(prev => prev.filter(t => t.id !== record.id))
       }
@@ -73,9 +78,9 @@ export function useTorrents() {
   }, [])
 
   // Control torrent (start/stop/remove)
-  const controlTorrent = useCallback(async (transmissionId: number, action: 'start' | 'stop' | 'remove') => {
+  const controlTorrent = useCallback(async (id: string, action: 'start' | 'stop' | 'remove') => {
     try {
-      const response = await fetch(`/api/torrents/${transmissionId}/action`, {
+      const response = await fetch(`/api/torrents/${id}/action`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -134,7 +139,7 @@ export function useTorrents() {
 
   // Remove multiple torrents
   const removeTorrents = useCallback(async (
-    ids: number[], 
+    ids: number[],
     deleteLocalData = false
   ) => {
     try {

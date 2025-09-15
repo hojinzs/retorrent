@@ -185,15 +185,12 @@ func (s *SyncService) updateTorrentsInDB(torrents []*TorrentData) error {
 	log.Println("Finished processing torrents from Transmission.")
 
 	log.Println("Checking for torrents removed from Transmission...")
-	// Mark removed torrents as inactive or delete them
+	// Hard delete records for torrents that no longer exist in Transmission
 	for hash, record := range existingTorrents {
 		if !currentHashes[hash] {
-			// Torrent was removed from Transmission
-			record.Set("status", "removed")
-			record.Set("updated", time.Now())
-			
-			if err := s.app.Save(record); err != nil {
-				log.Printf("Failed to mark torrent as removed (hash: %s): %v", hash, err)
+			// Torrent was removed from Transmission -> delete the DB record
+			if err := s.app.Delete(record); err != nil {
+				log.Printf("Failed to delete torrent record (hash: %s): %v", hash, err)
 			}
 		}
 	}
@@ -229,6 +226,12 @@ func (s *SyncService) updateTorrentRecord(record *core.Record, torrent *TorrentD
 	
 	if record.GetFloat("uploadRatio") != torrent.UploadRatio {
 		record.Set("uploadRatio", torrent.UploadRatio)
+		changed = true
+	}
+
+	// Ensure transmissionId stays in sync (important when torrent is re-added and gets a new ID)
+	if record.GetInt("transmissionId") != int(torrent.ID) {
+		record.Set("transmissionId", torrent.ID)
 		changed = true
 	}
 
@@ -276,6 +279,8 @@ func (s *SyncService) createTorrentRecord(collection *core.Collection, torrent *
 	record.Set("error", torrent.Error)
 	record.Set("errorString", torrent.ErrorString)
 	record.Set("transmissionData", torrent)
+	// Ensure 'updated' field is set on creation for proper sorting in UI
+	record.Set("updated", time.Now())
 
 	if torrent.DoneDate != nil {
 		record.Set("doneDate", *torrent.DoneDate)

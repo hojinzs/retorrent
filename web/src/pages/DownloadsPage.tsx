@@ -14,6 +14,7 @@ export function DownloadsPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [showRemoveDialog, setShowRemoveDialog] = useState(false)
   const [showSelection, setShowSelection] = useState(false)
+  const [removeTargets, setRemoveTargets] = useState<typeof torrents>([])
 
   // Selection management
   const selectedTorrents = torrents.filter(t => selectedIds.has(t.id))
@@ -40,6 +41,7 @@ export function DownloadsPage() {
 
   const handleRemoveSelected = useCallback(() => {
     if (selectedTorrents.length > 0) {
+      setRemoveTargets(selectedTorrents)
       setShowRemoveDialog(true)
     }
   }, [selectedTorrents])
@@ -47,6 +49,8 @@ export function DownloadsPage() {
   const handleRemoveConfirm = useCallback(async (ids: number[], deleteLocalData: boolean) => {
     await removeTorrents(ids, deleteLocalData)
     setSelectedIds(new Set()) // Clear selection after removal
+    setRemoveTargets([])
+    setShowRemoveDialog(false)
   }, [removeTorrents])
 
   const toggleSelectionMode = useCallback(() => {
@@ -55,6 +59,20 @@ export function DownloadsPage() {
       setSelectedIds(new Set()) // Clear selection when exiting selection mode
     }
   }, [showSelection])
+
+  // Intercept item-level control to show confirmation before remove
+  const handleControl = useCallback(async (id: string, action: 'start' | 'stop' | 'remove') => {
+    if (action === 'remove') {
+      const target = torrents.find(t => t.id === id)
+      if (target) {
+        setRemoveTargets([target])
+        setShowRemoveDialog(true)
+      }
+      return
+    }
+    // Delegate start/stop
+    await controlTorrent(id, action)
+  }, [torrents, controlTorrent])
 
   if (isLoading) {
     return (
@@ -169,7 +187,7 @@ export function DownloadsPage() {
             <DownloadItemCard
               key={torrent.id}
               torrent={torrent}
-              onControl={controlTorrent}
+              onControl={handleControl}
               isSelected={selectedIds.has(torrent.id)}
               onSelectionChange={(selected) => handleSelectTorrent(torrent.id, selected)}
               showSelection={showSelection}
@@ -188,8 +206,11 @@ export function DownloadsPage() {
       {/* Remove confirmation dialog */}
       <TorrentRemoveDialog
         open={showRemoveDialog}
-        onOpenChange={setShowRemoveDialog}
-        torrents={selectedTorrents}
+        onOpenChange={(open) => {
+          setShowRemoveDialog(open)
+          if (!open) setRemoveTargets([])
+        }}
+        torrents={removeTargets}
         onRemove={handleRemoveConfirm}
       />
     </div>

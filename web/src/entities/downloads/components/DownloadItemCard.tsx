@@ -7,7 +7,7 @@ import type {Torrent, TorrentStatus} from "../model"
 
 interface DownloadItemCardProps {
   torrent: Torrent
-  onControl?: (transmissionId: number, action: 'start' | 'stop' | 'remove') => void
+  onControl?: (id: string, action: 'start' | 'stop' | 'remove') => void
   isSelected?: boolean
   onSelectionChange?: (selected: boolean) => void
   showSelection?: boolean
@@ -25,7 +25,7 @@ export function DownloadItemCard({
   const isActive = torrent.status === 'download' || torrent.status === 'seed'
   
   const handleAction = (action: 'start' | 'stop' | 'remove') => {
-    onControl?.(torrent.transmissionId, action)
+    onControl?.(torrent.id, action)
   }
 
   return (
