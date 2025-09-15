@@ -80,6 +80,7 @@ const initialSetupRoute = createRoute({
   path: '/setup',
   component: InitialSetup,
   beforeLoad: ({ context }) => {
+    console.log("context => ", context)
     // Only allow access if no admin exists
     if (context.adminExists?.adminExists === true) {
       throw redirect({ to: '/login' })
@@ -96,6 +97,8 @@ const loginRoute = createRoute({
   path: '/login',
   component: Login,
   beforeLoad: ({ context }) => {
+
+    console.log("context => ", context)
     // If no admin exists, redirect to setup
     if (context.adminExists?.adminExists === false) {
       throw redirect({ to: '/setup' })
@@ -112,11 +115,10 @@ const appRoute = createRoute({
   id: 'app',
   component: AppLayout,
   beforeLoad: ({ context, location }) => {
-    // If no admin exists, redirect to setup
-    if (context.adminExists?.adminExists === false) {
-      throw redirect({ to: '/setup' })
-    }
-    // If user is not authenticated, redirect to login
+
+    console.log("Context => ", context)
+
+    // Only handle authentication here; admin gating is handled by /login and /setup routes
     if (!context.auth?.user) {
       throw redirect({
         to: '/login',
@@ -131,11 +133,8 @@ const appRoute = createRoute({
 const indexRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/',
-  beforeLoad: ({ context }) => {
-    // If no admin exists, redirect to setup
-    if (context.adminExists?.adminExists === false) {
-      throw redirect({ to: '/setup' })
-    }
+  beforeLoad: () => {
+    // Default to downloads as the app index
     throw redirect({ to: '/downloads' })
   },
 })
