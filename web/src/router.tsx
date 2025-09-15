@@ -2,7 +2,7 @@ import {
   Link,
   Outlet,
   RouterProvider,
-  createRootRoute,
+  createRootRouteWithContext,
   createRoute,
   createRouter,
   redirect,
@@ -61,7 +61,9 @@ function AppLayout() {
   )
 }
 
-const rootRoute = createRootRoute({
+const rootRoute = createRootRouteWithContext<{
+  auth: ReturnType<typeof useAuth>
+}>()({
   component: () => (
     <>
       <Outlet />
@@ -131,9 +133,6 @@ export const router = createRouter({
 declare module '@tanstack/react-router' {
   interface Register {
     router: typeof router
-    context: {
-      auth: ReturnType<typeof useAuth>
-    }
   }
 }
 
