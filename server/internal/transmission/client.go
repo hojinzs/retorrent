@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/hekmon/transmissionrpc/v3"
@@ -134,11 +135,58 @@ func mapTransmissionStatus(status transmissionrpc.TorrentStatus) TorrentStatus {
 	}
 }
 
-// AddTorrent adds a new torrent by magnet link or file
+// AddTorrent adds a new torrent by magnet link or base64-encoded torrent file
 func (c *Client) AddTorrent(ctx context.Context, torrentData string, downloadDir *string) (*TorrentData, error) {
-	// For now, return a simple placeholder
-	// TODO: Implement proper torrent adding
-	return nil, fmt.Errorf("torrent adding not implemented yet")
+	// Create TorrentAddPayload 
+	payload := transmissionrpc.TorrentAddPayload{
+		DownloadDir: downloadDir,
+	}
+	
+	// Check if it's a magnet link or base64 torrent data
+	if strings.HasPrefix(torrentData, "magnet:") {
+		payload.Filename = &torrentData
+	} else {
+		// Assume it's base64 encoded torrent file data
+		payload.MetaInfo = &torrentData
+	}
+	
+	// Add the torrent
+	torrent, err := c.client.TorrentAdd(ctx, payload)
+	if err != nil {
+		return nil, fmt.Errorf("failed to add torrent: %w", err)
+	}
+	
+	// Convert the result to our TorrentData format
+	result := &TorrentData{
+		ID:               int64(*torrent.ID),
+		Name:             *torrent.Name,
+		HashString:       *torrent.HashString,
+		Status:           mapTransmissionStatus(*torrent.Status),
+		PercentDone:      *torrent.PercentDone,
+		SizeWhenDone:     int64(*torrent.SizeWhenDone),
+		RateDownload:     *torrent.RateDownload,
+		RateUpload:       *torrent.RateUpload,
+		UploadRatio:      *torrent.UploadRatio,
+		ETA:              int64(*torrent.ETA),
+		TotalSize:        int64(*torrent.TotalSize),
+		DownloadedEver:   *torrent.DownloadedEver,
+		UploadedEver:     *torrent.UploadedEver,
+		AddedDate:        *torrent.AddedDate,
+	}
+
+	if torrent.DoneDate != nil && !torrent.DoneDate.IsZero() {
+		result.DoneDate = torrent.DoneDate
+	}
+
+	if torrent.Error != nil && *torrent.Error != 0 {
+		result.Error = fmt.Sprintf("Error code: %d", *torrent.Error)
+	}
+
+	if torrent.ErrorString != nil && *torrent.ErrorString != "" {
+		result.ErrorString = *torrent.ErrorString
+	}
+	
+	return result, nil
 }
 
 // StartTorrents starts the specified torrents
@@ -161,9 +209,18 @@ func (c *Client) StopTorrents(ctx context.Context, ids []int64) error {
 
 // RemoveTorrents removes the specified torrents
 func (c *Client) RemoveTorrents(ctx context.Context, ids []int64, deleteLocalData bool) error {
-	// For now, return a simple placeholder
-	// TODO: Implement proper torrent removal 
-	return fmt.Errorf("torrent removal not implemented yet")
+	// Use the transmissionrpc library's TorrentRemove method
+	payload := transmissionrpc.TorrentRemovePayload{
+		IDs:             ids,
+		DeleteLocalData: deleteLocalData,
+	}
+	
+	err := c.client.TorrentRemove(ctx, payload)
+	if err != nil {
+		return fmt.Errorf("failed to remove torrents: %w", err)
+	}
+	
+	return nil
 }
 
 // GetSessionStats gets transmission session statistics

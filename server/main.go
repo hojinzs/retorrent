@@ -2,6 +2,7 @@ package main
 
 import (
     "context"
+    "fmt"
     "log"
     "os"
     "strings"
@@ -93,6 +94,161 @@ func main() {
             }
 
             return re.JSON(200, map[string]string{"message": "Sync completed"})
+        })
+
+        // API endpoint to add torrents
+        se.Router.POST("/api/torrents/add", func(re *core.RequestEvent) error {
+            if transmissionClient == nil {
+                return re.JSON(503, map[string]string{"error": "Transmission client not available"})
+            }
+
+            // Parse request body
+            var request struct {
+                Torrent     string  `json:"torrent"`
+                DownloadDir *string `json:"downloadDir,omitempty"`
+                AutoStart   *bool   `json:"autoStart,omitempty"`
+            }
+
+            if err := re.BindBody(&request); err != nil {
+                return re.JSON(400, map[string]string{"error": "Invalid request body"})
+            }
+
+            if request.Torrent == "" {
+                return re.JSON(400, map[string]string{"error": "Torrent data is required"})
+            }
+
+            // Add torrent
+            ctx := re.Request.Context()
+            torrentData, err := transmissionClient.AddTorrent(ctx, request.Torrent, request.DownloadDir)
+            if err != nil {
+                return re.JSON(400, map[string]string{"error": err.Error()})
+            }
+
+            // Auto start if requested
+            if request.AutoStart != nil && *request.AutoStart && torrentData != nil {
+                if err := transmissionClient.StartTorrents(ctx, []int64{torrentData.ID}); err != nil {
+                    log.Printf("Failed to auto-start torrent %d: %v", torrentData.ID, err)
+                    // Don't fail the request, just log the error
+                }
+            }
+
+            // Force sync to update the database
+            if err := syncService.ForceSync(); err != nil {
+                log.Printf("Failed to sync after adding torrent: %v", err)
+            }
+
+            return re.JSON(200, map[string]interface{}{
+                "success":        true,
+                "transmission_id": torrentData.ID,
+                "message":        "Torrent added successfully",
+            })
+        })
+
+        // API endpoint to remove torrents
+        se.Router.POST("/api/torrents/remove", func(re *core.RequestEvent) error {
+            if transmissionClient == nil {
+                return re.JSON(503, map[string]string{"error": "Transmission client not available"})
+            }
+
+            // Parse request body
+            var request struct {
+                IDs               []int64 `json:"ids"`
+                DeleteLocalData   *bool   `json:"deleteLocalData,omitempty"`
+            }
+
+            if err := re.BindBody(&request); err != nil {
+                return re.JSON(400, map[string]string{"error": "Invalid request body"})
+            }
+
+            if len(request.IDs) == 0 {
+                return re.JSON(400, map[string]string{"error": "At least one torrent ID is required"})
+            }
+
+            // Default to false if not specified
+            deleteLocalData := false
+            if request.DeleteLocalData != nil {
+                deleteLocalData = *request.DeleteLocalData
+            }
+
+            // Remove torrents
+            ctx := re.Request.Context()
+            if err := transmissionClient.RemoveTorrents(ctx, request.IDs, deleteLocalData); err != nil {
+                return re.JSON(400, map[string]string{"error": err.Error()})
+            }
+
+            // Force sync to update the database
+            if err := syncService.ForceSync(); err != nil {
+                log.Printf("Failed to sync after removing torrents: %v", err)
+            }
+
+            return re.JSON(200, map[string]interface{}{
+                "success": true,
+                "message": fmt.Sprintf("Successfully removed %d torrent(s)", len(request.IDs)),
+            })
+        })
+
+        // API endpoint for torrent actions (backward compatibility)
+        se.Router.POST("/api/torrents/:id/action", func(re *core.RequestEvent) error {
+            if transmissionClient == nil {
+                return re.JSON(503, map[string]string{"error": "Transmission client not available"})
+            }
+
+            // Parse torrent ID from URL
+            torrentID := re.Request.PathValue("id")
+            if torrentID == "" {
+                return re.JSON(400, map[string]string{"error": "Torrent ID is required"})
+            }
+
+            // Convert to int64
+            var id int64
+            if _, err := fmt.Sscanf(torrentID, "%d", &id); err != nil {
+                return re.JSON(400, map[string]string{"error": "Invalid torrent ID"})
+            }
+
+            // Parse request body
+            var request struct {
+                Action string                 `json:"action"`
+                Params map[string]interface{} `json:"params,omitempty"`
+            }
+
+            if err := re.BindBody(&request); err != nil {
+                return re.JSON(400, map[string]string{"error": "Invalid request body"})
+            }
+
+            ctx := re.Request.Context()
+            switch request.Action {
+            case "start":
+                if err := transmissionClient.StartTorrents(ctx, []int64{id}); err != nil {
+                    return re.JSON(400, map[string]string{"error": err.Error()})
+                }
+            case "stop":
+                if err := transmissionClient.StopTorrents(ctx, []int64{id}); err != nil {
+                    return re.JSON(400, map[string]string{"error": err.Error()})
+                }
+            case "remove":
+                // Check for deleteLocalData parameter
+                deleteLocalData := false
+                if request.Params != nil {
+                    if val, ok := request.Params["deleteLocalData"].(bool); ok {
+                        deleteLocalData = val
+                    }
+                }
+                if err := transmissionClient.RemoveTorrents(ctx, []int64{id}, deleteLocalData); err != nil {
+                    return re.JSON(400, map[string]string{"error": err.Error()})
+                }
+            default:
+                return re.JSON(400, map[string]string{"error": "Invalid action"})
+            }
+
+            // Force sync to update the database
+            if err := syncService.ForceSync(); err != nil {
+                log.Printf("Failed to sync after %s action: %v", request.Action, err)
+            }
+
+            return re.JSON(200, map[string]interface{}{
+                "success": true,
+                "message": fmt.Sprintf("Torrent %s successful", request.Action),
+            })
         })
 
         // serves static files from the provided public dir (if exists)
