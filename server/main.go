@@ -6,6 +6,7 @@ import (
     "log"
     "os"
     "strings"
+    "path"
     "time"
 
     "github.com/pocketbase/pocketbase"
@@ -17,6 +18,15 @@ import (
    	"backend/internal/transmission"
    	"backend/users"
    )
+
+func isAssetPath(p string) bool {
+    if strings.HasPrefix(p, "/api/") {
+        return false
+    }
+    // 확장자가 있으면 정적 파일로 간주 (예: .css, .js, .png, .svg, .ico 등)
+    return strings.Contains(path.Base(p), ".")
+}
+
 
 func main() {
     app := pocketbase.New()
@@ -275,14 +285,26 @@ func main() {
         // serves static files from the provided public dir (if exists)
         // Note: avoid intercepting API routes with the catch-all static handler
         se.Router.GET("/{path...}", func(re *core.RequestEvent) error {
-            // If path starts with /api, let other handlers process it (prevents 404)
             p := re.Request.URL.Path
+
+            // 1) /api/* 는 다음 핸들러로
             if strings.HasPrefix(p, "/api/") {
                 return re.Next()
             }
-            // Otherwise, serve static assets
-            return apis.Static(os.DirFS("./pb_public"), false)(re)
-        })
+
+            // 2) 정적 파일/SPA 구분
+            fs := os.DirFS("./pb_public")
+
+            // 확장자가 있으면 정적 파일로 간주 (예: .css, .js, .png 등)
+            if strings.Contains(path.Base(p), ".") {
+                // 파일이 없을 때 index.html 폴백 없이 404를 내고 싶다면 아래처럼 NotFound로 종료 가능
+                // 단, Static 핸들러가 자체적으로 404를 처리하므로 보통은 한 줄이면 충분합니다.
+                return apis.Static(fs, false)(re)
+            }
+
+            // 3) SPA 라우트는 index.html 폴백
+            return apis.Static(fs, true)(re)
+            })
 
         return se.Next()
     })
