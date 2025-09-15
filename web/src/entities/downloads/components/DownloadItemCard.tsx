@@ -1,27 +1,44 @@
 import { Badge } from "@shared/components/ui/badge"
 import { Button } from "@shared/components/ui/button"
 import { Card } from "@shared/components/ui/card"
+import { Checkbox } from "@shared/components/ui/checkbox"
 import { Progress } from "@shared/components/ui/progress"
 import type {Torrent, TorrentStatus} from "../model"
 
 interface DownloadItemCardProps {
   torrent: Torrent
-  onControl?: (transmissionId: number, action: 'start' | 'stop' | 'remove') => void
+  onControl?: (id: string, action: 'start' | 'stop' | 'remove') => void
+  isSelected?: boolean
+  onSelectionChange?: (selected: boolean) => void
+  showSelection?: boolean
 }
 
-export function DownloadItemCard({ torrent, onControl }: DownloadItemCardProps) {
+export function DownloadItemCard({ 
+  torrent, 
+  onControl, 
+  isSelected = false, 
+  onSelectionChange, 
+  showSelection = false 
+}: DownloadItemCardProps) {
   const progressPercent = torrent.percentDone * 100
   const sizeText = formatBytes(torrent.sizeWhenDone)
   const isActive = torrent.status === 'download' || torrent.status === 'seed'
   
   const handleAction = (action: 'start' | 'stop' | 'remove') => {
-    onControl?.(torrent.transmissionId, action)
+    onControl?.(torrent.id, action)
   }
 
   return (
-    <Card>
+    <Card className={`transition-colors ${isSelected ? 'ring-2 ring-primary' : ''}`}>
       <div className="flex items-center justify-between p-3 pr-4">
         <div className="flex flex-1 items-center gap-4">
+          {showSelection && (
+            <Checkbox
+              checked={isSelected}
+              onCheckedChange={onSelectionChange}
+              aria-label={`Select ${torrent.name}`}
+            />
+          )}
           <div className="flex-1">
             <div className="font-semibold">{torrent.name}</div>
             <div className="mt-1.5 flex items-center gap-2">
@@ -53,9 +70,11 @@ export function DownloadItemCard({ torrent, onControl }: DownloadItemCardProps) 
               Start
             </Button>
           )}
-          <Button variant="destructive" size="sm" onClick={() => handleAction('remove')}>
-            Remove
-          </Button>
+          {!showSelection && (
+            <Button variant="destructive" size="sm" onClick={() => handleAction('remove')}>
+              Remove
+            </Button>
+          )}
         </div>
       </div>
     </Card>

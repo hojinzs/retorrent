@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/hekmon/transmissionrpc/v3"
@@ -77,21 +78,82 @@ func (c *Client) GetTorrents(ctx context.Context) ([]*TorrentData, error) {
 
 	result := make([]*TorrentData, 0, len(torrents))
 	for _, t := range torrents {
+		var (
+			id       int64
+			name     string
+			hash     string
+			status   TorrentStatus
+			pctDone  float64
+			sizeDone int64
+			rd       int64
+			ru       int64
+			ratio    float64
+			eta      int64
+			total    int64
+			dlEver   int64
+			ulEver   int64
+			addedAt  time.Time
+		)
+		if t.ID != nil {
+			id = int64(*t.ID)
+		}
+		if t.Name != nil {
+			name = *t.Name
+		}
+		if t.HashString != nil {
+			hash = *t.HashString
+		}
+		if t.Status != nil {
+			status = mapTransmissionStatus(*t.Status)
+		} else {
+			status = StatusStopped
+		}
+		if t.PercentDone != nil {
+			pctDone = *t.PercentDone
+		}
+		if t.SizeWhenDone != nil {
+			sizeDone = int64(*t.SizeWhenDone)
+		}
+		if t.RateDownload != nil {
+			rd = *t.RateDownload
+		}
+		if t.RateUpload != nil {
+			ru = *t.RateUpload
+		}
+		if t.UploadRatio != nil {
+			ratio = *t.UploadRatio
+		}
+		if t.ETA != nil {
+			eta = int64(*t.ETA)
+		}
+		if t.TotalSize != nil {
+			total = int64(*t.TotalSize)
+		}
+		if t.DownloadedEver != nil {
+			dlEver = *t.DownloadedEver
+		}
+		if t.UploadedEver != nil {
+			ulEver = *t.UploadedEver
+		}
+		if t.AddedDate != nil {
+			addedAt = *t.AddedDate
+		}
+
 		torrentData := &TorrentData{
-			ID:               int64(*t.ID),
-			Name:             *t.Name,
-			HashString:       *t.HashString,
-			Status:           mapTransmissionStatus(*t.Status),
-			PercentDone:      *t.PercentDone,
-			SizeWhenDone:     int64(*t.SizeWhenDone),
-			RateDownload:     *t.RateDownload,
-			RateUpload:       *t.RateUpload,
-			UploadRatio:      *t.UploadRatio,
-			ETA:              int64(*t.ETA),
-			TotalSize:        int64(*t.TotalSize),
-			DownloadedEver:   *t.DownloadedEver,
-			UploadedEver:     *t.UploadedEver,
-			AddedDate:        *t.AddedDate,
+			ID:             id,
+			Name:           name,
+			HashString:     hash,
+			Status:         status,
+			PercentDone:    pctDone,
+			SizeWhenDone:   sizeDone,
+			RateDownload:   rd,
+			RateUpload:     ru,
+			UploadRatio:    ratio,
+			ETA:            eta,
+			TotalSize:      total,
+			DownloadedEver: dlEver,
+			UploadedEver:   ulEver,
+			AddedDate:      addedAt,
 		}
 
 		if t.DoneDate != nil && !t.DoneDate.IsZero() {
@@ -134,11 +196,119 @@ func mapTransmissionStatus(status transmissionrpc.TorrentStatus) TorrentStatus {
 	}
 }
 
-// AddTorrent adds a new torrent by magnet link or file
+// AddTorrent adds a new torrent by magnet link or base64-encoded torrent file
 func (c *Client) AddTorrent(ctx context.Context, torrentData string, downloadDir *string) (*TorrentData, error) {
-	// For now, return a simple placeholder
-	// TODO: Implement proper torrent adding
-	return nil, fmt.Errorf("torrent adding not implemented yet")
+	// Create TorrentAddPayload
+	payload := transmissionrpc.TorrentAddPayload{
+		DownloadDir: downloadDir,
+	}
+
+	// Check if it's a magnet link or base64 torrent data
+	if strings.HasPrefix(torrentData, "magnet:") {
+		payload.Filename = &torrentData
+	} else {
+		// Assume it's base64 encoded torrent file data
+		payload.MetaInfo = &torrentData
+	}
+
+	// Add the torrent
+	t, err := c.client.TorrentAdd(ctx, payload)
+	if err != nil {
+		return nil, fmt.Errorf("failed to add torrent: %w", err)
+	}
+
+	// Safely map fields that may be nil in the add response
+	var (
+		id       int64
+		name     string
+		hash     string
+		status   TorrentStatus
+		pctDone  float64
+		sizeDone int64
+		rd       int64
+		ru       int64
+		ratio    float64
+		eta      int64
+		total    int64
+		dlEver   int64
+		ulEver   int64
+		addedAt  time.Time
+	)
+	if t.ID != nil {
+		id = int64(*t.ID)
+	}
+	if t.Name != nil {
+		name = *t.Name
+	}
+	if t.HashString != nil {
+		hash = *t.HashString
+	}
+	if t.Status != nil {
+		status = mapTransmissionStatus(*t.Status)
+	} else {
+		status = StatusStopped
+	}
+	if t.PercentDone != nil {
+		pctDone = *t.PercentDone
+	}
+	if t.SizeWhenDone != nil {
+		sizeDone = int64(*t.SizeWhenDone)
+	}
+	if t.RateDownload != nil {
+		rd = *t.RateDownload
+	}
+	if t.RateUpload != nil {
+		ru = *t.RateUpload
+	}
+	if t.UploadRatio != nil {
+		ratio = *t.UploadRatio
+	}
+	if t.ETA != nil {
+		eta = int64(*t.ETA)
+	}
+	if t.TotalSize != nil {
+		total = int64(*t.TotalSize)
+	}
+	if t.DownloadedEver != nil {
+		dlEver = *t.DownloadedEver
+	}
+	if t.UploadedEver != nil {
+		ulEver = *t.UploadedEver
+	}
+	if t.AddedDate != nil {
+		addedAt = *t.AddedDate
+	}
+
+	result := &TorrentData{
+		ID:             id,
+		Name:           name,
+		HashString:     hash,
+		Status:         status,
+		PercentDone:    pctDone,
+		SizeWhenDone:   sizeDone,
+		RateDownload:   rd,
+		RateUpload:     ru,
+		UploadRatio:    ratio,
+		ETA:            eta,
+		TotalSize:      total,
+		DownloadedEver: dlEver,
+		UploadedEver:   ulEver,
+		AddedDate:      addedAt,
+	}
+
+	if t.DoneDate != nil && !t.DoneDate.IsZero() {
+		result.DoneDate = t.DoneDate
+	}
+
+	if t.Error != nil && *t.Error != 0 {
+		result.Error = fmt.Sprintf("Error code: %d", *t.Error)
+	}
+
+	if t.ErrorString != nil && *t.ErrorString != "" {
+		result.ErrorString = *t.ErrorString
+	}
+
+	return result, nil
 }
 
 // StartTorrents starts the specified torrents
@@ -161,9 +331,20 @@ func (c *Client) StopTorrents(ctx context.Context, ids []int64) error {
 
 // RemoveTorrents removes the specified torrents
 func (c *Client) RemoveTorrents(ctx context.Context, ids []int64, deleteLocalData bool) error {
-	// For now, return a simple placeholder
-	// TODO: Implement proper torrent removal 
-	return fmt.Errorf("torrent removal not implemented yet")
+	// Use the transmissionrpc library's TorrentRemove method
+	payload := transmissionrpc.TorrentRemovePayload{
+		IDs:             ids,
+		DeleteLocalData: deleteLocalData,
+	}
+	
+	fmt.Printf("Removing torrents with payload: %+v\n", payload)
+	
+	err := c.client.TorrentRemove(ctx, payload)
+	if err != nil {
+		return fmt.Errorf("failed to remove torrents: %w", err)
+	}
+	
+	return nil
 }
 
 // GetSessionStats gets transmission session statistics
