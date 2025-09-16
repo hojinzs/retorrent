@@ -1,5 +1,5 @@
 {
-  "name": "@transmission-webui-shaded/web",
+  "name": "@retorrent/web",
   "private": true,
   "version": "0.0.0",
   "type": "module",
