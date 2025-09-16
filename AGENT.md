@@ -5,6 +5,15 @@
 
 작업 전, 반드시 `/docs` 의 문서 참고
 
+## Product 관리
+notion mcp를 사용할 수 있다면, 아래 프로젝트 문서를 참고해 다음 내용을 수행
+https://www.notion.so/Retorrent-270ecd5a3ac2802982e3daf6157ec4ca?source=copy_link
+
+- 프로덕트 요구사항 확인
+- 관련 문서 열람
+- Function Requirements에 맞춘 이슈 생성 제안
+- 이슈 생성 후, 댓글로 생성된 이슈 링크 알림
+
 ---
 
 ## 1. 에이전트(Agent)의 역할
