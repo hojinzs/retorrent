@@ -3,6 +3,7 @@ package transmission
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/url"
 	"strings"
 	"time"
@@ -53,12 +54,21 @@ type Client struct {
 
 // NewClient creates a new Transmission client
 func NewClient(app core.App, endpoint, username, password string) (*Client, error) {
+
+    // 접속 정보 로그 출력
+	log.Printf("Connecting to transmission: host=%s, username=%s", endpoint, username)
+
 	u, err := url.Parse(endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("invalid transmission endpoint: %w", err)
 	}
+	if username != "" || password != "" {
+		u.User = url.UserPassword(username, password)
+	}
 
-	client, err := transmissionrpc.New(u, nil)
+    cfg := &transmissionrpc.Config{}
+
+	client, err := transmissionrpc.New(u, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create transmission client: %w", err)
 	}

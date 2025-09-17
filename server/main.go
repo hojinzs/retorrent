@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+    "github.com/joho/godotenv"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
@@ -28,6 +29,10 @@ func isAssetPath(p string) bool {
 }
 
 func main() {
+    if err := godotenv.Load(); err != nil {
+        log.Println("No .env file found")
+    }
+
 	app := pocketbase.New()
 
 	// Global variables for transmission client and sync service
@@ -44,6 +49,8 @@ func main() {
 
 		transmissionUser := os.Getenv("TRANSMISSION_USER")
 		transmissionPass := os.Getenv("TRANSMISSION_PASS")
+
+		log.Printf("ENV: host=%s, username=%s password=%p", transmissionHost, transmissionUser, transmissionPass)
 
 		// Try to connect to real Transmission first
 		client, err := transmission.NewClient(app, transmissionHost, transmissionUser, transmissionPass)
