@@ -204,6 +204,22 @@ func (s *SyncService) updateTorrentRecord(record *core.Record, torrent *TorrentD
 	// Check if any significant field has changed
 	changed := false
 	
+	// Check metadata fields (important for magnet torrents that get metadata later)
+	if record.GetString("name") != torrent.Name {
+		record.Set("name", torrent.Name)
+		changed = true
+	}
+	
+	if record.GetInt("sizeWhenDone") != int(torrent.SizeWhenDone) {
+		record.Set("sizeWhenDone", torrent.SizeWhenDone)
+		changed = true
+	}
+	
+	if record.GetInt("totalSize") != int(torrent.TotalSize) {
+		record.Set("totalSize", torrent.TotalSize)
+		changed = true
+	}
+	
 	if record.GetString("status") != string(torrent.Status) {
 		record.Set("status", string(torrent.Status))
 		changed = true
