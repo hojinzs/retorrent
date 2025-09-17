@@ -11,9 +11,9 @@ import (
 
 // MockClient simulates a Transmission client for demo/testing purposes
 type MockClient struct {
-	app           core.App
-	torrents      []*TorrentData
-	lastUpdate    time.Time
+	app        core.App
+	torrents   []*TorrentData
+	lastUpdate time.Time
 }
 
 // NewMockClient creates a new mock Transmission client
@@ -33,29 +33,29 @@ func (m *MockClient) GetTorrents(ctx context.Context) ([]*TorrentData, error) {
 		m.updateMockProgress()
 		m.lastUpdate = now
 	}
-	
+
 	return m.torrents, nil
 }
 
 // AddTorrent simulates adding a new torrent
 func (m *MockClient) AddTorrent(ctx context.Context, torrentData string, downloadDir *string) (*TorrentData, error) {
 	newTorrent := &TorrentData{
-		ID:               int64(len(m.torrents) + 1),
-		Name:             fmt.Sprintf("New Torrent %d", len(m.torrents)+1),
-		HashString:       fmt.Sprintf("mock_hash_%d", len(m.torrents)+1),
-		Status:           StatusDownload,
-		PercentDone:      0.0,
-		SizeWhenDone:     1024 * 1024 * 1024, // 1GB
-		RateDownload:     1024 * 1024,        // 1MB/s
-		RateUpload:       0,
-		UploadRatio:      0.0,
-		ETA:              3600, // 1 hour
-		TotalSize:        1024 * 1024 * 1024,
-		DownloadedEver:   0,
-		UploadedEver:     0,
-		AddedDate:        time.Now(),
+		ID:             int64(len(m.torrents) + 1),
+		Name:           fmt.Sprintf("New Torrent %d", len(m.torrents)+1),
+		HashString:     fmt.Sprintf("mock_hash_%d", len(m.torrents)+1),
+		Status:         StatusDownload,
+		PercentDone:    0.0,
+		SizeWhenDone:   1024 * 1024 * 1024, // 1GB
+		RateDownload:   1024 * 1024,        // 1MB/s
+		RateUpload:     0,
+		UploadRatio:    0.0,
+		ETA:            3600, // 1 hour
+		TotalSize:      1024 * 1024 * 1024,
+		DownloadedEver: 0,
+		UploadedEver:   0,
+		AddedDate:      time.Now(),
 	}
-	
+
 	m.torrents = append(m.torrents, newTorrent)
 	return newTorrent, nil
 }
@@ -67,7 +67,7 @@ func (m *MockClient) StartTorrents(ctx context.Context, ids []int64) error {
 			if t.ID == id {
 				if t.Status == StatusStopped {
 					t.Status = StatusDownload
-					t.RateDownload = int64(rand.Intn(5*1024*1024)) // 0-5MB/s
+					t.RateDownload = int64(rand.Intn(5 * 1024 * 1024)) // 0-5MB/s
 				}
 			}
 		}
@@ -174,18 +174,18 @@ func (m *MockClient) updateMockProgress() {
 			progress := 0.01 + rand.Float64()*0.02
 			t.PercentDone = min(1.0, t.PercentDone+progress)
 			t.DownloadedEver = int64(t.PercentDone * float64(t.TotalSize))
-			
+
 			// Calculate ETA
 			if t.RateDownload > 0 {
 				remaining := t.TotalSize - t.DownloadedEver
 				t.ETA = remaining / t.RateDownload
 			}
-			
+
 			// Complete torrent
 			if t.PercentDone >= 1.0 {
 				t.Status = StatusSeed
 				t.RateDownload = 0
-				t.RateUpload = int64(rand.Intn(1024*1024)) // 0-1MB/s upload
+				t.RateUpload = int64(rand.Intn(1024 * 1024)) // 0-1MB/s upload
 				t.ETA = -1
 				if t.DoneDate == nil {
 					now := time.Now()
@@ -193,7 +193,7 @@ func (m *MockClient) updateMockProgress() {
 				}
 			}
 		}
-		
+
 		// Simulate upload ratio changes for seeding torrents
 		if t.Status == StatusSeed && t.RateUpload > 0 {
 			uploaded := float64(t.RateUpload) * 5.0 // 5 seconds worth

@@ -70,14 +70,14 @@ func TestUpdateTorrentRecordMetadata(t *testing.T) {
 		Name:           "Ubuntu 24.04 LTS Desktop amd64.iso", // Real name now available
 		HashString:     "abcdef1234567890",
 		Status:         StatusDownload,
-		PercentDone:    0.25,           // Progress has changed too
-		SizeWhenDone:   4294967296,     // 4GB - now has size info
-		TotalSize:      4294967296,     // 4GB - now has size info
-		RateDownload:   2097152,        // 2MB/s
+		PercentDone:    0.25,       // Progress has changed too
+		SizeWhenDone:   4294967296, // 4GB - now has size info
+		TotalSize:      4294967296, // 4GB - now has size info
+		RateDownload:   2097152,    // 2MB/s
 		RateUpload:     0,
 		UploadRatio:    0.0,
 		ETA:            1800,
-		DownloadedEver: 1073741824,     // 25% of 4GB
+		DownloadedEver: 1073741824, // 25% of 4GB
 		UploadedEver:   0,
 	}
 
