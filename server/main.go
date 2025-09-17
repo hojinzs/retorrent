@@ -50,8 +50,6 @@ func main() {
 		transmissionUser := os.Getenv("TRANSMISSION_USER")
 		transmissionPass := os.Getenv("TRANSMISSION_PASS")
 
-		log.Printf("ENV: host=%s, username=%s password=%p", transmissionHost, transmissionUser, transmissionPass)
-
 		// Try to connect to real Transmission first
 		client, err := transmission.NewClient(app, transmissionHost, transmissionUser, transmissionPass)
 		if err == nil {
