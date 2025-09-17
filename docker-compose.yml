@@ -1,9 +1,11 @@
 version: '3.8'
 
 services:
-  transmission-webui-shaded:
+  retorrent:
     build: .
-    container_name: transmission-webui-shaded
+    container_name: retorrent
+    depends_on:
+      - transmission
     ports:
       - "8080:8080"
     volumes:
@@ -11,8 +13,9 @@ services:
     environment:
       # 웹 UI 로그인을 위한 사용자 이름과 비밀번호를 설정합니다.
       # 보안을 위해 이 기본값을 변경하세요.
-      - USER=${TRANSMISSION_USER:-}
-      - PASS=${TRANSMISSION_PASS:-}
+      - TRANSMISSION_HOST=${TRANSMISSION_HOST:-http://transmission:9091/transmission/rpc}
+      - TRANSMISSION_USER=${TRANSMISSION_USER:-user}
+      - TRANSMISSION_PASS=${TRANSMISSION_PASS:-password}
   transmission:
     image: ghcr.io/linuxserver/transmission
     container_name: transmission
@@ -21,13 +24,13 @@ services:
       - PGID=1000
       # 개발 테스트 시 편의를 위해 계정은 비워둘 수 있습니다.
       # 필요 시 .env 파일에 TRANSMISSION_USER, TRANSMISSION_PASS 를 설정하세요.
-      - USER=${TRANSMISSION_USER:-}
-      - PASS=${TRANSMISSION_PASS:-}
+      - USER=${TRANSMISSION_USER:-user}
+      - PASS=${TRANSMISSION_PASS:-password}
     volumes:
       - transmission_config:/config
       - transmission_downloads:/downloads
     ports:
-#      - "9091:9091"      # Web UI
+      - "9091:9091"      # Web UI
       - "51413:51413"    # BitTorrent TCP
       - "51413:51413/udp"# BitTorrent UDP (DHT)
 

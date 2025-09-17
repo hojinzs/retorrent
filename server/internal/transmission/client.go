@@ -3,6 +3,7 @@ package transmission
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/url"
 	"strings"
 	"time"
@@ -26,23 +27,23 @@ const (
 
 // TorrentData represents torrent information from Transmission
 type TorrentData struct {
-	ID               int64         `json:"id"`
-	Name             string        `json:"name"`
-	HashString       string        `json:"hashString"`
-	Status           TorrentStatus `json:"status"`
-	PercentDone      float64       `json:"percentDone"`
-	SizeWhenDone     int64         `json:"sizeWhenDone"`
-	RateDownload     int64         `json:"rateDownload"`
-	RateUpload       int64         `json:"rateUpload"`
-	UploadRatio      float64       `json:"uploadRatio"`
-	ETA              int64         `json:"eta"`
-	TotalSize        int64         `json:"totalSize"`
-	DownloadedEver   int64         `json:"downloadedEver"`
-	UploadedEver     int64         `json:"uploadedEver"`
-	AddedDate        time.Time     `json:"addedDate"`
-	DoneDate         *time.Time    `json:"doneDate,omitempty"`
-	Error            string        `json:"error,omitempty"`
-	ErrorString      string        `json:"errorString,omitempty"`
+	ID             int64         `json:"id"`
+	Name           string        `json:"name"`
+	HashString     string        `json:"hashString"`
+	Status         TorrentStatus `json:"status"`
+	PercentDone    float64       `json:"percentDone"`
+	SizeWhenDone   int64         `json:"sizeWhenDone"`
+	RateDownload   int64         `json:"rateDownload"`
+	RateUpload     int64         `json:"rateUpload"`
+	UploadRatio    float64       `json:"uploadRatio"`
+	ETA            int64         `json:"eta"`
+	TotalSize      int64         `json:"totalSize"`
+	DownloadedEver int64         `json:"downloadedEver"`
+	UploadedEver   int64         `json:"uploadedEver"`
+	AddedDate      time.Time     `json:"addedDate"`
+	DoneDate       *time.Time    `json:"doneDate,omitempty"`
+	Error          string        `json:"error,omitempty"`
+	ErrorString    string        `json:"errorString,omitempty"`
 }
 
 // Client wraps the Transmission RPC client
@@ -53,12 +54,21 @@ type Client struct {
 
 // NewClient creates a new Transmission client
 func NewClient(app core.App, endpoint, username, password string) (*Client, error) {
+
+    // 접속 정보 로그 출력
+	log.Printf("Connecting to transmission: host=%s, username=%s", endpoint, username)
+
 	u, err := url.Parse(endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("invalid transmission endpoint: %w", err)
 	}
+	if username != "" || password != "" {
+		u.User = url.UserPassword(username, password)
+	}
 
-	client, err := transmissionrpc.New(u, nil)
+    cfg := &transmissionrpc.Config{}
+
+	client, err := transmissionrpc.New(u, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create transmission client: %w", err)
 	}
@@ -336,14 +346,14 @@ func (c *Client) RemoveTorrents(ctx context.Context, ids []int64, deleteLocalDat
 		IDs:             ids,
 		DeleteLocalData: deleteLocalData,
 	}
-	
+
 	fmt.Printf("Removing torrents with payload: %+v\n", payload)
-	
+
 	err := c.client.TorrentRemove(ctx, payload)
 	if err != nil {
 		return fmt.Errorf("failed to remove torrents: %w", err)
 	}
-	
+
 	return nil
 }
 

@@ -44,7 +44,7 @@ func init() {
 			Required: true,
 			Values: []string{
 				"stopped",
-				"checkWait", 
+				"checkWait",
 				"check",
 				"downloadWait",
 				"download",

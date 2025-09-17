@@ -12,20 +12,20 @@ import (
 
 // SyncService handles periodic synchronization between Transmission and PocketBase
 type SyncService struct {
-	app           core.App
-	client        TransmissionClient
-	interval      time.Duration
-	ctx           context.Context
-	cancel        context.CancelFunc
-	mu            sync.RWMutex
-	lastSync      time.Time
-	isRunning     bool
+	app       core.App
+	client    TransmissionClient
+	interval  time.Duration
+	ctx       context.Context
+	cancel    context.CancelFunc
+	mu        sync.RWMutex
+	lastSync  time.Time
+	isRunning bool
 }
 
 // NewSyncService creates a new sync service
 func NewSyncService(app core.App, client TransmissionClient, interval time.Duration) *SyncService {
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	return &SyncService{
 		app:      app,
 		client:   client,
@@ -44,12 +44,12 @@ func (s *SyncService) Start() error {
 	}
 	s.isRunning = true
 	s.mu.Unlock()
-	
+
 	log.Printf("Starting Transmission sync service with interval: %v", s.interval)
 
 	// Start periodic sync
 	go s.syncLoop()
-	
+
 	return nil
 }
 
@@ -107,7 +107,7 @@ func (s *SyncService) syncLoop() {
 // syncOnce performs a single synchronization
 func (s *SyncService) syncOnce() error {
 	log.Println("Starting Transmission sync...")
-	
+
 	// Add a timeout to the context
 	ctx, cancel := context.WithTimeout(s.ctx, 10*time.Second)
 	defer cancel()
@@ -166,7 +166,7 @@ func (s *SyncService) updateTorrentsInDB(torrents []*TorrentData) error {
 	// Update or create torrents
 	for _, torrent := range torrents {
 		currentHashes[torrent.HashString] = true
-		
+
 		record, exists := existingTorrents[torrent.HashString]
 		if exists {
 			// Update existing record
@@ -203,27 +203,43 @@ func (s *SyncService) updateTorrentsInDB(torrents []*TorrentData) error {
 func (s *SyncService) updateTorrentRecord(record *core.Record, torrent *TorrentData) error {
 	// Check if any significant field has changed
 	changed := false
-	
+
+	// Check metadata fields (important for magnet torrents that get metadata later)
+	if record.GetString("name") != torrent.Name {
+		record.Set("name", torrent.Name)
+		changed = true
+	}
+
+	if record.GetInt("sizeWhenDone") != int(torrent.SizeWhenDone) {
+		record.Set("sizeWhenDone", torrent.SizeWhenDone)
+		changed = true
+	}
+
+	if record.GetInt("totalSize") != int(torrent.TotalSize) {
+		record.Set("totalSize", torrent.TotalSize)
+		changed = true
+	}
+
 	if record.GetString("status") != string(torrent.Status) {
 		record.Set("status", string(torrent.Status))
 		changed = true
 	}
-	
+
 	if record.GetFloat("percentDone") != torrent.PercentDone {
 		record.Set("percentDone", torrent.PercentDone)
 		changed = true
 	}
-	
+
 	if record.GetInt("rateDownload") != int(torrent.RateDownload) {
 		record.Set("rateDownload", torrent.RateDownload)
 		changed = true
 	}
-	
+
 	if record.GetInt("rateUpload") != int(torrent.RateUpload) {
 		record.Set("rateUpload", torrent.RateUpload)
 		changed = true
 	}
-	
+
 	if record.GetFloat("uploadRatio") != torrent.UploadRatio {
 		record.Set("uploadRatio", torrent.UploadRatio)
 		changed = true
@@ -261,7 +277,7 @@ func (s *SyncService) updateTorrentRecord(record *core.Record, torrent *TorrentD
 // createTorrentRecord creates a new torrent record
 func (s *SyncService) createTorrentRecord(collection *core.Collection, torrent *TorrentData) error {
 	record := core.NewRecord(collection)
-	
+
 	record.Set("transmissionId", torrent.ID)
 	record.Set("name", torrent.Name)
 	record.Set("hash", torrent.HashString)
