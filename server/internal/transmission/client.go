@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hekmon/cunits/v2"
 	"github.com/hekmon/transmissionrpc/v3"
 	"github.com/pocketbase/pocketbase/core"
 )
@@ -52,10 +53,18 @@ type Client struct {
 	app    core.App
 }
 
+func bitsToBytes(bits *cunits.Bits) int64 {
+	if bits == nil {
+		return 0
+	}
+
+	return int64(uint64(*bits) / 8)
+}
+
 // NewClient creates a new Transmission client
 func NewClient(app core.App, endpoint, username, password string) (*Client, error) {
 
-    // 접속 정보 로그 출력
+	// 접속 정보 로그 출력
 	log.Printf("Connecting to transmission: host=%s, username=%s", endpoint, username)
 
 	u, err := url.Parse(endpoint)
@@ -66,7 +75,7 @@ func NewClient(app core.App, endpoint, username, password string) (*Client, erro
 		u.User = url.UserPassword(username, password)
 	}
 
-    cfg := &transmissionrpc.Config{}
+	cfg := &transmissionrpc.Config{}
 
 	client, err := transmissionrpc.New(u, cfg)
 	if err != nil {
@@ -121,9 +130,7 @@ func (c *Client) GetTorrents(ctx context.Context) ([]*TorrentData, error) {
 		if t.PercentDone != nil {
 			pctDone = *t.PercentDone
 		}
-		if t.SizeWhenDone != nil {
-			sizeDone = int64(*t.SizeWhenDone)
-		}
+		sizeDone = bitsToBytes(t.SizeWhenDone)
 		if t.RateDownload != nil {
 			rd = *t.RateDownload
 		}
@@ -136,9 +143,7 @@ func (c *Client) GetTorrents(ctx context.Context) ([]*TorrentData, error) {
 		if t.ETA != nil {
 			eta = int64(*t.ETA)
 		}
-		if t.TotalSize != nil {
-			total = int64(*t.TotalSize)
-		}
+		total = bitsToBytes(t.TotalSize)
 		if t.DownloadedEver != nil {
 			dlEver = *t.DownloadedEver
 		}
@@ -261,9 +266,7 @@ func (c *Client) AddTorrent(ctx context.Context, torrentData string, downloadDir
 	if t.PercentDone != nil {
 		pctDone = *t.PercentDone
 	}
-	if t.SizeWhenDone != nil {
-		sizeDone = int64(*t.SizeWhenDone)
-	}
+	sizeDone = bitsToBytes(t.SizeWhenDone)
 	if t.RateDownload != nil {
 		rd = *t.RateDownload
 	}
@@ -276,9 +279,7 @@ func (c *Client) AddTorrent(ctx context.Context, torrentData string, downloadDir
 	if t.ETA != nil {
 		eta = int64(*t.ETA)
 	}
-	if t.TotalSize != nil {
-		total = int64(*t.TotalSize)
-	}
+	total = bitsToBytes(t.TotalSize)
 	if t.DownloadedEver != nil {
 		dlEver = *t.DownloadedEver
 	}
