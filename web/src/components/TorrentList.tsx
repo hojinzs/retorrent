@@ -323,11 +323,11 @@ export function TorrentList({ isMobile }: TorrentListProps) {
             </div>
           </div>
         ) : (
-          <div>
+          <div className={`flex flex-col ${isMobile ? 'gap-3 px-4 pb-20' : 'gap-4 px-6'}`}>
             {filteredTorrents.map(torrent => (
-              <div key={torrent.id} className="flex items-start">
+              <div key={torrent.id} className="flex items-start gap-3">
                 {(!isMobile || isSelectionMode) && (
-                  <div className="p-4 flex items-center">
+                  <div className="pt-2">
                     <Checkbox
                       checked={selectedTorrents.includes(torrent.id)}
                       onCheckedChange={(checked) => handleTorrentSelect(torrent.id, !!checked)}

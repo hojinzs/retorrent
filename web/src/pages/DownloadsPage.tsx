@@ -307,11 +307,11 @@ export function DownloadsPage() {
             </div>
           </div>
         ) : (
-          <div className="divide-y divide-border">
+          <div className={`flex flex-col ${isMobile ? 'gap-3 px-4 pb-6' : 'gap-4 px-8 py-6'}`}>
             {filteredTorrents.map(torrent => (
-              <div key={torrent.id} className="flex items-center px-8">
+              <div key={torrent.id} className="flex items-start gap-3">
                 {(!isMobile || isSelectionMode) && (
-                  <div className="py-4 pr-4">
+                  <div className="pt-2">
                     <Checkbox
                       checked={selectedTorrents.includes(torrent.id)}
                       onCheckedChange={(checked) => handleSelectTorrent(torrent.id, !!checked)}
