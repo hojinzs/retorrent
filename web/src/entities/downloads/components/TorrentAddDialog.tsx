@@ -61,6 +61,25 @@ export function TorrentAddDialog({ onAddTorrent }: TorrentAddDialogProps) {
             }
             
             const base64Data = result.substring(commaIndex + 1)
+            
+            // Debug logging to understand the data
+            console.log('File reading debug:', {
+              fileName: file.name,
+              fileSize: file.size,
+              fileType: file.type,
+              resultLength: result.length,
+              base64Length: base64Data.length,
+              firstChars: base64Data.substring(0, 20),
+              lastChars: base64Data.length > 20 ? base64Data.substring(base64Data.length - 20) : 'N/A'
+            })
+            
+            // Validate minimum size (torrent files should be much larger when base64 encoded)
+            if (base64Data.length < 100) {
+              console.error('Base64 data too short:', base64Data)
+              reject(new Error(`File appears to be corrupted or invalid. Expected much larger base64 data, got ${base64Data.length} characters.`))
+              return
+            }
+            
             resolve(base64Data)
           } catch (error) {
             reject(error)
