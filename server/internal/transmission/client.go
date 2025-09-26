@@ -2,7 +2,6 @@ package transmission
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 	"log"
 	"net/url"
@@ -12,6 +11,8 @@ import (
 	"github.com/hekmon/cunits/v2"
 	"github.com/hekmon/transmissionrpc/v3"
 	"github.com/pocketbase/pocketbase/core"
+	
+	"backend/internal/utils"
 )
 
 // TorrentStatus represents the status of a torrent
@@ -230,14 +231,20 @@ func (c *Client) AddTorrent(ctx context.Context, torrentData string, downloadDir
 		// Assume it's base64 encoded torrent file data
 		log.Printf("AddTorrent: Adding torrent file as base64 (length: %d)", len(torrentData))
 		
-		// Validate base64 format
-		if _, err := base64.StdEncoding.DecodeString(torrentData); err != nil {
+		// Clean and validate base64 format with robust handling
+		cleanedData, err := utils.ValidateAndCleanBase64(torrentData)
+		if err != nil {
 			log.Printf("AddTorrent: Invalid base64 data: %v", err)
+			log.Printf("AddTorrent: Original length: %d", len(torrentData))
 			return nil, fmt.Errorf("invalid base64 torrent data: %w", err)
 		}
 		
-		payload.MetaInfo = &torrentData
-		log.Printf("AddTorrent: MetaInfo set with base64 data")
+		if len(cleanedData) != len(torrentData) {
+			log.Printf("AddTorrent: Base64 data was cleaned - original: %d, cleaned: %d", len(torrentData), len(cleanedData))
+		}
+		
+		payload.MetaInfo = &cleanedData
+		log.Printf("AddTorrent: MetaInfo set with validated base64 data (length: %d)", len(cleanedData))
 	}
 
 	log.Printf("AddTorrent: Calling TorrentAdd with payload: DownloadDir=%v, HasFilename=%t, HasMetaInfo=%t, Paused=%t", 

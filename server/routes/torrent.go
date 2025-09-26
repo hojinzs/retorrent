@@ -1,7 +1,6 @@
 package routes
 
 import (
-	"encoding/base64"
 	"fmt"
 	"log"
 	"strings"
@@ -9,6 +8,7 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 
 	"backend/internal/torrent"
+	"backend/internal/utils"
 )
 
 // TorrentRoutes handles torrent-related HTTP routes
@@ -77,11 +77,24 @@ func (tr *TorrentRoutes) handleAddTorrent(re *core.RequestEvent) error {
 		log.Printf("handleAddTorrent: Processing magnet link")
 	} else {
 		log.Printf("handleAddTorrent: Processing torrent file (base64)")
-		// Validate base64 format
-		if _, err := base64.StdEncoding.DecodeString(request.Torrent); err != nil {
+		// Validate and clean base64 format with robust handling
+		cleanedTorrent, err := utils.ValidateAndCleanBase64(request.Torrent)
+		if err != nil {
 			log.Printf("handleAddTorrent: ERROR - Invalid base64 data: %v", err)
+			log.Printf("handleAddTorrent: Original data length: %d", len(request.Torrent))
+			// Log first 100 characters for debugging (safely)
+			sample := request.Torrent
+			if len(sample) > 100 {
+				sample = sample[:100] + "..."
+			}
+			log.Printf("handleAddTorrent: Data sample: %s", sample)
 			return re.JSON(400, map[string]string{"error": "Invalid base64 torrent data"})
 		}
+		// Update request with cleaned data
+		if len(cleanedTorrent) != len(request.Torrent) {
+			log.Printf("handleAddTorrent: Base64 data was cleaned - original: %d, cleaned: %d", len(request.Torrent), len(cleanedTorrent))
+		}
+		request.Torrent = cleanedTorrent
 	}
 
 	// Add torrent using service
