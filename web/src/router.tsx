@@ -6,14 +6,13 @@ import {
   createRouter,
   redirect,
   useRouterState,
-  useNavigate,
 } from '@tanstack/react-router'
 import { DownloadsPage } from './pages/DownloadsPage'
 import Login from './pages/Login'
 import InitialSetup from './pages/InitialSetup'
 import Preferences from './pages/Preferences'
 import { Button } from '@shared/components/ui/button'
-import { LogOut, Menu } from 'lucide-react'
+import { Menu } from 'lucide-react'
 import { useAuth } from '@shared/contexts/AuthContext'
 import { useAdminExists } from '@shared/hooks/useAdminExists'
 import { LoadingSpinner } from '@shared/components/LoadingSpinner'
@@ -25,16 +24,9 @@ import { useState } from 'react'
 
 function AppLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
-  const { logout, user } = useAuth()
-  const navigate = useNavigate()
   const { theme, setTheme } = useTheme()
   const isMobile = useIsMobile()
   const [sidebarOpen, setSidebarOpen] = useState(false)
-
-  const handleLogout = () => {
-    logout()
-    navigate({ to: '/login' })
-  }
 
   const handleThemeToggle = () => {
     const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
@@ -45,20 +37,6 @@ function AppLayout() {
 
   return (
     <div className="h-screen w-full bg-background text-foreground flex overflow-hidden">
-      {/* Mobile Header */}
-      {isMobile && (
-        <div className="fixed top-0 left-0 right-0 z-30 bg-card/80 backdrop-blur-sm border-b border-border">
-          <div className="flex items-center justify-between p-4">
-            <h3>Retorrent</h3>
-            {user && (
-              <Button variant="ghost" size="sm" onClick={handleLogout}>
-                <LogOut className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* Mobile FAB Menu Button */}
       {isMobile && (
         <Button
@@ -96,7 +74,7 @@ function AppLayout() {
       )}
 
       {/* Main Content */}
-      <div className={`flex-1 flex flex-col ${isMobile ? 'pt-16' : ''} min-w-0`}>
+      <div className="flex-1 flex flex-col min-w-0">
         <main className="flex-1 overflow-auto">
           <Outlet />
         </main>

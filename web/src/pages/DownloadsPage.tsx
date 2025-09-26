@@ -180,10 +180,10 @@ export function DownloadsPage() {
       )}
 
       {/* Header */}
-      <div className={`p-8 border-b border-border ${isMobile ? '' : ''}`}>
+      <div className={`${isMobile ? 'p-4' : 'p-8'} border-b border-border`}>
         <div className="flex flex-col gap-6">
           <div className="flex items-center justify-between">
-            {!isMobile && <h1>Downloads</h1>}
+            <h1>{isMobile ? 'Downloads' : 'Downloads'}</h1>
             {!isMobile && (
               <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => setAddTorrentOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
