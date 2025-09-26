@@ -108,7 +108,9 @@ export default function Preferences() {
 
   const hasChanges = () => {
     const current = getCurrentValues();
-    return Object.keys(initialValues).some(key => (current as any)[key] !== (initialValues as any)[key]);
+    return Object.keys(initialValues).some(key => 
+      (current as Record<string, any>)[key] !== (initialValues as Record<string, any>)[key]
+    );
   };
 
   const handleSave = () => {
