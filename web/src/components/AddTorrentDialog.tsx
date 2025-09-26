@@ -11,8 +11,19 @@ import { Link, Upload } from "lucide-react";
 interface AddTorrentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAddTorrent: (data: { type: 'magnet' | 'file', content: string, directory?: string, autoStart: boolean }) => void;
+  onAddTorrent: (data: { type: 'magnet' | 'file', content: string, directory?: string, autoStart: boolean }) => Promise<unknown> | void;
 }
+
+const readFileAsBase64 = (file: File) => new Promise<string>((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = () => {
+    const result = reader.result as string;
+    const base64 = result.includes(',') ? result.split(',')[1] : result;
+    resolve(base64);
+  };
+  reader.onerror = () => reject(reader.error);
+  reader.readAsDataURL(file);
+});
 
 export function AddTorrentDialog({ open, onOpenChange, onAddTorrent }: AddTorrentDialogProps) {
   const [activeTab, setActiveTab] = useState('magnet');
@@ -20,6 +31,8 @@ export function AddTorrentDialog({ open, onOpenChange, onAddTorrent }: AddTorren
   const [torrentFile, setTorrentFile] = useState<File | null>(null);
   const [downloadDirectory, setDownloadDirectory] = useState('');
   const [autoStart, setAutoStart] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleClose = () => {
     onOpenChange(false);
@@ -29,35 +42,68 @@ export function AddTorrentDialog({ open, onOpenChange, onAddTorrent }: AddTorren
     setDownloadDirectory('');
     setAutoStart(true);
     setActiveTab('magnet');
+    setError(null);
+    setIsSubmitting(false);
   };
 
-  const handleSubmit = () => {
-    if (activeTab === 'magnet' && magnetLink.trim()) {
-      onAddTorrent({
-        type: 'magnet',
-        content: magnetLink.trim(),
-        directory: downloadDirectory || undefined,
-        autoStart
-      });
-    } else if (activeTab === 'file' && torrentFile) {
-      onAddTorrent({
-        type: 'file',
-        content: torrentFile.name, // In real implementation, this would be the file content
-        directory: downloadDirectory || undefined,
-        autoStart
-      });
+  const handleSubmit = async () => {
+    if (isSubmitting) {
+      return;
     }
-    handleClose();
+
+    if (activeTab === 'magnet' && magnetLink.trim()) {
+      try {
+        setError(null);
+        setIsSubmitting(true);
+        await Promise.resolve(onAddTorrent({
+          type: 'magnet',
+          content: magnetLink.trim(),
+          directory: downloadDirectory || undefined,
+          autoStart
+        }));
+        handleClose();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to add magnet link');
+      } finally {
+        setIsSubmitting(false);
+      }
+    } else if (activeTab === 'file' && torrentFile) {
+      try {
+        setError(null);
+        setIsSubmitting(true);
+        const base64 = await readFileAsBase64(torrentFile);
+        await Promise.resolve(onAddTorrent({
+          type: 'file',
+          content: base64,
+          directory: downloadDirectory || undefined,
+          autoStart
+        }));
+        handleClose();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to add torrent file');
+        setIsSubmitting(false);
+      }
+    }
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file && file.name.endsWith('.torrent')) {
-      setTorrentFile(file);
+    if (!file) {
+      setTorrentFile(null);
+      return;
     }
+
+    if (!file.name.endsWith('.torrent')) {
+      setError('Please select a .torrent file');
+      setTorrentFile(null);
+      return;
+    }
+
+    setError(null);
+    setTorrentFile(file);
   };
 
-  const isSubmitEnabled = (activeTab === 'magnet' && magnetLink.trim()) || 
+  const isSubmitEnabled = (activeTab === 'magnet' && magnetLink.trim()) ||
                          (activeTab === 'file' && torrentFile);
 
   return (
@@ -105,6 +151,7 @@ export function AddTorrentDialog({ open, onOpenChange, onAddTorrent }: AddTorren
                     onChange={handleFileChange}
                     className="hidden"
                     id="torrent-file"
+                    disabled={isSubmitting}
                   />
                   <label
                     htmlFor="torrent-file"
@@ -136,6 +183,7 @@ export function AddTorrentDialog({ open, onOpenChange, onAddTorrent }: AddTorren
                 value={downloadDirectory}
                 onChange={(e) => setDownloadDirectory(e.target.value)}
                 className="bg-input border-border text-foreground placeholder:text-muted-foreground"
+                disabled={isSubmitting}
               />
             </div>
 
@@ -144,6 +192,7 @@ export function AddTorrentDialog({ open, onOpenChange, onAddTorrent }: AddTorren
                 id="auto-start"
                 checked={autoStart}
                 onCheckedChange={(checked) => setAutoStart(!!checked)}
+                disabled={isSubmitting}
               />
               <Label htmlFor="auto-start" className="text-foreground cursor-pointer">
                 Start torrent automatically
@@ -151,20 +200,27 @@ export function AddTorrentDialog({ open, onOpenChange, onAddTorrent }: AddTorren
             </div>
           </div>
 
+          {error && (
+            <div className="mt-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+              {error}
+            </div>
+          )}
+
           <div className="flex justify-end gap-3 mt-6">
             <Button
               variant="outline"
               onClick={handleClose}
               className="border-border text-foreground hover:bg-accent/50"
+              disabled={isSubmitting}
             >
               Cancel
             </Button>
             <Button
               onClick={handleSubmit}
-              disabled={!isSubmitEnabled}
+              disabled={!isSubmitEnabled || isSubmitting}
               className="bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
             >
-              {activeTab === 'magnet' ? 'Add Magnet Link' : 'Upload File'}
+              {isSubmitting ? 'Adding…' : activeTab === 'magnet' ? 'Add Magnet Link' : 'Upload File'}
             </Button>
           </div>
         </div>
