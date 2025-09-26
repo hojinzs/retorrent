@@ -74,9 +74,19 @@ export function TorrentAddDialog({ onAddTorrent }: TorrentAddDialogProps) {
             })
             
             // Validate minimum size (torrent files should be much larger when base64 encoded)
-            if (base64Data.length < 100) {
-              console.error('Base64 data too short:', base64Data)
-              reject(new Error(`File appears to be corrupted or invalid. Expected much larger base64 data, got ${base64Data.length} characters.`))
+            if (base64Data.length < 500) {  // More realistic minimum - real torrent files are typically 1000+ chars when encoded
+              const fileInfo = `File: ${file.name} (${file.size} bytes, type: ${file.type || 'unknown'})`
+              const dataInfo = `Base64 length: ${base64Data.length} characters`
+              const expectedInfo = `Expected: 1000+ characters for a real torrent file`
+              
+              console.error('File too small to be a valid torrent:', {
+                file: fileInfo,
+                data: dataInfo,
+                expected: expectedInfo,
+                actualData: base64Data
+              })
+              
+              reject(new Error(`Invalid torrent file selected.\n\n${fileInfo}\n${dataInfo}\n${expectedInfo}\n\nPlease select a proper .torrent file (typically several KB in size).`))
               return
             }
             
