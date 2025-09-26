@@ -41,48 +41,32 @@ export function TorrentAddDialog({ onAddTorrent }: TorrentAddDialogProps) {
       setError(null)
       setIsSubmitting(true)
 
-      // Convert file to base64 - using reliable data URL approach
+      // Convert file to base64 - use simple, reliable approach
       const base64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader()
-        reader.onload = () => {
+        reader.onload = (event) => {
           try {
-            const result = reader.result as string
-            // Data URLs have format: data:[<mediatype>][;base64],<data>
-            // Find the comma that separates metadata from data
+            const result = event.target?.result as string
+            if (!result) {
+              reject(new Error('Failed to read file'))
+              return
+            }
+            
+            // Data URL format: "data:application/octet-stream;base64,<base64data>"
+            // Find the comma and extract everything after it
             const commaIndex = result.indexOf(',')
-            if (commaIndex === -1 || commaIndex === result.length - 1) {
-              reject(new Error('Invalid data URL format'))
+            if (commaIndex === -1) {
+              reject(new Error('Invalid file format'))
               return
             }
-            // Extract everything after the comma
+            
             const base64Data = result.substring(commaIndex + 1)
-            // Basic validation - check if it looks like base64
-            if (!base64Data || base64Data.length === 0) {
-              reject(new Error('Empty base64 data'))
-              return
-            }
-            
-            // Additional validation - check if it contains only valid base64 characters
-            const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/
-            if (!base64Regex.test(base64Data)) {
-              console.error('Invalid base64 characters detected:', base64Data.substring(0, 100))
-              reject(new Error('Generated data contains invalid base64 characters'))
-              return
-            }
-            
-            console.log('File successfully converted to base64:', {
-              fileName: file.name,
-              fileSize: file.size,
-              base64Length: base64Data.length,
-              firstChars: base64Data.substring(0, 20)
-            })
-            
             resolve(base64Data)
           } catch (error) {
             reject(error)
           }
         }
-        reader.onerror = () => reject(reader.error || new Error('Failed to read file'))
+        reader.onerror = () => reject(new Error('Failed to read file'))
         reader.readAsDataURL(file)
       })
 
