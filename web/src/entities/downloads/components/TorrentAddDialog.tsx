@@ -41,17 +41,23 @@ export function TorrentAddDialog({ onAddTorrent }: TorrentAddDialogProps) {
       setError(null)
       setIsSubmitting(true)
 
-      // Convert file to base64
+      // Convert file to base64 using modern approach
       const base64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader()
         reader.onload = () => {
-          const result = reader.result as string
-          // Remove the data:application/octet-stream;base64, prefix
-          const base64Data = result.split(',')[1]
-          resolve(base64Data)
+          try {
+            const result = reader.result as ArrayBuffer
+            // Convert ArrayBuffer to base64 using modern approach
+            const uint8Array = new Uint8Array(result)
+            const binaryString = Array.from(uint8Array, byte => String.fromCharCode(byte)).join('')
+            const base64Data = btoa(binaryString)
+            resolve(base64Data)
+          } catch (error) {
+            reject(error)
+          }
         }
-        reader.onerror = reject
-        reader.readAsDataURL(file)
+        reader.onerror = () => reject(reader.error)
+        reader.readAsArrayBuffer(file)
       })
 
       await onAddTorrent(base64, {

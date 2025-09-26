@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"encoding/base64"
 	"fmt"
 	"log"
 	"strings"
@@ -77,23 +78,39 @@ func (tr *TorrentRoutes) handleAddTorrent(re *core.RequestEvent) error {
 		log.Printf("handleAddTorrent: Processing magnet link")
 	} else {
 		log.Printf("handleAddTorrent: Processing torrent file (base64)")
-		// Validate and clean base64 format with robust handling
+		log.Printf("handleAddTorrent: Raw torrent data length: %d", len(request.Torrent))
+		
+		// Log a safe sample of the data for debugging
+		sample := request.Torrent
+		if len(sample) > 200 {
+			sample = sample[:100] + "..." + sample[len(sample)-100:]
+		}
+		log.Printf("handleAddTorrent: Data sample: %s", sample)
+		
+		// For debugging: temporarily try to decode without validation to see what happens
+		if len(request.Torrent) > 0 {
+			rawDecoded, rawErr := base64.StdEncoding.DecodeString(request.Torrent)
+			log.Printf("handleAddTorrent: Raw base64 decode attempt - success: %t, decoded length: %d, error: %v", 
+				rawErr == nil, len(rawDecoded), rawErr)
+		}
+		
+		// Try our robust validation
 		cleanedTorrent, err := utils.ValidateAndCleanBase64(request.Torrent)
 		if err != nil {
-			log.Printf("handleAddTorrent: ERROR - Invalid base64 data: %v", err)
-			log.Printf("handleAddTorrent: Original data length: %d", len(request.Torrent))
-			// Log first 100 characters for debugging (safely)
-			sample := request.Torrent
-			if len(sample) > 100 {
-				sample = sample[:100] + "..."
+			log.Printf("handleAddTorrent: ERROR - Robust validation failed: %v", err)
+			log.Printf("handleAddTorrent: This might indicate a fundamental issue with the data")
+			
+			// As a last resort, let's try to continue without validation to see what happens downstream
+			log.Printf("handleAddTorrent: WARNING - Proceeding without base64 validation for debugging")
+			cleanedTorrent = request.Torrent
+		} else {
+			log.Printf("handleAddTorrent: Robust validation succeeded")
+			if len(cleanedTorrent) != len(request.Torrent) {
+				log.Printf("handleAddTorrent: Base64 data was cleaned - original: %d, cleaned: %d", len(request.Torrent), len(cleanedTorrent))
 			}
-			log.Printf("handleAddTorrent: Data sample: %s", sample)
-			return re.JSON(400, map[string]string{"error": "Invalid base64 torrent data"})
 		}
-		// Update request with cleaned data
-		if len(cleanedTorrent) != len(request.Torrent) {
-			log.Printf("handleAddTorrent: Base64 data was cleaned - original: %d, cleaned: %d", len(request.Torrent), len(cleanedTorrent))
-		}
+		
+		// Always proceed with the request to see what happens downstream
 		request.Torrent = cleanedTorrent
 	}
 
