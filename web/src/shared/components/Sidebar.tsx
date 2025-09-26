@@ -41,8 +41,8 @@ export function Sidebar({ isDark, onThemeToggle, activePath, isMobile, isOpen, o
           {/* User Profile Section - Now at top */}
           <div className="p-4 border-b border-border/20">
             <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent/30 transition-colors cursor-pointer">
-              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                <User className="h-5 w-5 text-primary" />
+              <div className="w-10 h-10 rounded-full bg-green-600/20 flex items-center justify-center">
+                <User className="h-5 w-5 text-green-600" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="caption truncate">Admin User</p>
@@ -82,7 +82,7 @@ export function Sidebar({ isDark, onThemeToggle, activePath, isMobile, isOpen, o
                     className={`
                       w-full justify-start h-11 px-4 rounded-lg transition-all
                       ${isActive 
-                        ? 'bg-primary text-primary-foreground hover:bg-primary/90' 
+                        ? 'bg-green-600 text-white hover:bg-green-700' 
                         : 'hover:bg-accent/50 text-sidebar-foreground'
                       }
                     `}

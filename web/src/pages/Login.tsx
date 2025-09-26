@@ -51,8 +51,8 @@ export default function Login() {
         <div className="backdrop-blur-glass glass-panel rounded-xl p-8 border border-border/20">
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/20 flex items-center justify-center">
-              <LogIn className="h-8 w-8 text-primary" />
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-600/20 flex items-center justify-center">
+              <LogIn className="h-8 w-8 text-green-600" />
             </div>
             <h1 className="text-2xl font-semibold mb-2">Welcome to Retorrent</h1>
             <p className="caption text-muted-foreground">
@@ -127,7 +127,7 @@ export default function Login() {
 
             <Button
               type="submit"
-              className={`w-full bg-primary hover:bg-primary/90 text-primary-foreground ${
+              className={`w-full bg-green-600 hover:bg-green-700 text-white ${
                 isMobile ? 'h-12' : 'h-11'
               }`}
               disabled={isLoading}

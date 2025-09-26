@@ -1,99 +1,128 @@
 import { Button } from "@shared/components/ui/button"
-import { Card } from "@shared/components/ui/card"
-import { Checkbox } from "@shared/components/ui/checkbox"
 import { Input } from "@shared/components/ui/input"
-import { Tabs, TabsList, TabsTrigger } from "@shared/components/ui/tabs"
-import { useTorrents } from "../entities/downloads/hooks/useTorrents"
-import { DownloadItemCard } from "../entities/downloads/components/DownloadItemCard"
-import { TorrentAddDialog } from "../entities/downloads/components/TorrentAddDialog"
-import { TorrentRemoveDialog } from "../entities/downloads/components/TorrentRemoveDialog"
-import { RefreshCw, WifiOff, Plus, Search, MoreHorizontal } from "lucide-react"
-import { useState, useCallback } from "react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@shared/components/ui/tabs"
+import { Plus, Search, MoreHorizontal } from "lucide-react"
+import { TorrentItem } from "../components/TorrentItem"
+import { Checkbox } from "@shared/components/ui/checkbox"
+import { AddTorrentDialog } from "../components/AddTorrentDialog"
 import { useIsMobile } from "@shared/hooks/use-mobile"
+import { useTorrents } from "../entities/downloads/hooks/useTorrents"
+import { TorrentRemoveDialog } from "../entities/downloads/components/TorrentRemoveDialog"
+import { RefreshCw, WifiOff } from "lucide-react"
+import { useState, useCallback } from "react"
+
+// Convert backend torrent data to TorrentData format for the TorrentItem component
+const convertTorrentData = (backendTorrent: any) => ({
+  id: backendTorrent.id,
+  name: backendTorrent.name,
+  progress: Math.round(backendTorrent.percentDone * 100),
+  downloadSpeed: backendTorrent.rateDownload > 0 ? `${(backendTorrent.rateDownload / 1024 / 1024).toFixed(1)} MB/s` : '0 KB/s',
+  uploadSpeed: backendTorrent.rateUpload > 0 ? `${(backendTorrent.rateUpload / 1024 / 1024).toFixed(1)} MB/s` : '0 KB/s',
+  size: `${(backendTorrent.sizeWhenDone / 1024 / 1024 / 1024).toFixed(1)} GB`,
+  status: backendTorrent.status === 'download' ? 'downloading' :
+          backendTorrent.status === 'seed' ? 'seeding' :
+          backendTorrent.status === 'stopped' ? 'paused' : 'completed',
+  eta: backendTorrent.eta > 0 ? `${Math.round(backendTorrent.eta / 60)}m ${backendTorrent.eta % 60}s` : '∞'
+});
 
 export function DownloadsPage() {
-  const { torrents, isLoading, error, forceSync, controlTorrent, addTorrent, removeTorrents } = useTorrents()
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  const [showRemoveDialog, setShowRemoveDialog] = useState(false)
-  const [showSelection, setShowSelection] = useState(false)
-  const [removeTargets, setRemoveTargets] = useState<typeof torrents>([])
+  const isMobile = useIsMobile()
+  const { torrents: backendTorrents, isLoading, error, forceSync, controlTorrent, addTorrent, removeTorrents } = useTorrents()
+  const [selectedTorrents, setSelectedTorrents] = useState<string[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [activeTab, setActiveTab] = useState('all')
-  const isMobile = useIsMobile()
+  const [addTorrentOpen, setAddTorrentOpen] = useState(false)
+  const [isSelectionMode, setIsSelectionMode] = useState(false)
+  const [showRemoveDialog, setShowRemoveDialog] = useState(false)
+  const [removeTargets, setRemoveTargets] = useState<any[]>([])
 
-  // Selection management
-  const selectedTorrents = torrents.filter(t => selectedIds.has(t.id))
-  const allSelected = torrents.length > 0 && selectedIds.size === torrents.length
+  // Convert backend data to TorrentData format
+  const torrents = backendTorrents.map(convertTorrentData)
 
   // Filter torrents by search and tab
   const filteredTorrents = torrents.filter(torrent => {
     const matchesSearch = torrent.name.toLowerCase().includes(searchQuery.toLowerCase())
-    if (activeTab === 'all') return matchesSearch;
-    if (activeTab === 'active') return matchesSearch && (torrent.status === "download" || torrent.status === "seed");
-    if (activeTab === 'downloading') return matchesSearch && torrent.status === "download";
-    if (activeTab === 'seeding') return matchesSearch && torrent.status === "seed";
-    if (activeTab === 'paused') return matchesSearch && torrent.status === "stopped";
-    if (activeTab === 'finished') return matchesSearch && torrent.status === "seed"; // completed
-    return matchesSearch;
+    
+    switch (activeTab) {
+      case 'all':
+        return matchesSearch
+      case 'active':
+        return matchesSearch && (torrent.status === 'downloading' || torrent.status === 'seeding')
+      case 'downloading':
+        return matchesSearch && torrent.status === 'downloading'
+      case 'seeding':
+        return matchesSearch && torrent.status === 'seeding'
+      case 'paused':
+        return matchesSearch && torrent.status === 'paused'
+      case 'finished':
+        return matchesSearch && torrent.status === 'completed'
+      default:
+        return matchesSearch
+    }
   })
 
-  const handleSelectAll = useCallback(() => {
-    if (allSelected) {
-      setSelectedIds(new Set())
-    } else {
-      setSelectedIds(new Set(filteredTorrents.map(t => t.id)))
-    }
-  }, [allSelected, filteredTorrents])
-
   const handleSelectTorrent = useCallback((torrentId: string, selected: boolean) => {
-    const newSelected = new Set(selectedIds)
     if (selected) {
-      newSelected.add(torrentId)
+      setSelectedTorrents(prev => [...prev, torrentId])
     } else {
-      newSelected.delete(torrentId)
+      setSelectedTorrents(prev => prev.filter(id => id !== torrentId))
     }
-    setSelectedIds(newSelected)
-  }, [selectedIds])
+  }, [])
+
+  const handleSelectAll = useCallback(() => {
+    if (selectedTorrents.length === filteredTorrents.length) {
+      setSelectedTorrents([])
+    } else {
+      setSelectedTorrents(filteredTorrents.map(t => t.id))
+    }
+  }, [selectedTorrents.length, filteredTorrents])
 
   const handleRemoveSelected = useCallback(() => {
     if (selectedTorrents.length > 0) {
-      setRemoveTargets(selectedTorrents)
+      const targetsToRemove = backendTorrents.filter(t => selectedTorrents.includes(t.id))
+      setRemoveTargets(targetsToRemove)
       setShowRemoveDialog(true)
     }
-  }, [selectedTorrents])
+  }, [selectedTorrents, backendTorrents])
 
   const handleRemoveConfirm = useCallback(async (ids: number[], deleteLocalData: boolean) => {
     await removeTorrents(ids, deleteLocalData)
-    setSelectedIds(new Set()) // Clear selection after removal
+    setSelectedTorrents([])
     setRemoveTargets([])
     setShowRemoveDialog(false)
   }, [removeTorrents])
 
-  const toggleSelectionMode = useCallback(() => {
-    setShowSelection(!showSelection)
-    if (showSelection) {
-      setSelectedIds(new Set()) // Clear selection when exiting selection mode
-    }
-  }, [showSelection])
-
-  // Intercept item-level control to show confirmation before remove
-  const handleControl = useCallback(async (id: string, action: 'start' | 'stop' | 'remove') => {
+  const handleTorrentAction = useCallback(async (torrentId: string, action: 'play' | 'pause' | 'remove') => {
     if (action === 'remove') {
-      const target = torrents.find(t => t.id === id)
+      const target = backendTorrents.find(t => t.id === torrentId)
       if (target) {
         setRemoveTargets([target])
         setShowRemoveDialog(true)
       }
       return
     }
-    // Delegate start/stop
-    await controlTorrent(id, action)
-  }, [torrents, controlTorrent])
+    
+    const backendAction = action === 'play' ? 'start' : 'stop'
+    await controlTorrent(torrentId, backendAction)
+  }, [backendTorrents, controlTorrent])
+
+  const handleAddTorrent = async (data: { type: 'magnet' | 'file', content: string, directory?: string, autoStart: boolean }) => {
+    try {
+      if (data.type === 'magnet') {
+        await addTorrent({ magnetLink: data.content })
+      } else {
+        await addTorrent({ file: data.content })
+      }
+      setAddTorrentOpen(false)
+    } catch (error) {
+      console.error('Failed to add torrent:', error)
+    }
+  }
 
   // Loading state
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex-1 flex items-center justify-center">
         <div className="text-center">
           <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
           <p className="text-muted-foreground">Loading torrents...</p>
@@ -105,100 +134,93 @@ export function DownloadsPage() {
   // Error state
   if (error) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Card className="p-6 max-w-md">
-          <div className="text-center">
-            <WifiOff className="h-8 w-8 mx-auto mb-4 text-destructive" />
-            <h3 className="font-semibold mb-2">Connection Error</h3>
-            <p className="text-sm text-muted-foreground mb-4">{error}</p>
-            <Button onClick={forceSync} variant="outline">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Retry
-            </Button>
-          </div>
-        </Card>
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center max-w-md p-6 bg-card border border-border rounded-xl">
+          <WifiOff className="h-8 w-8 mx-auto mb-4 text-destructive" />
+          <h3 className="font-semibold mb-2">Connection Error</h3>
+          <p className="caption text-muted-foreground mb-4">{error}</p>
+          <Button onClick={forceSync} variant="outline">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Retry
+          </Button>
+        </div>
       </div>
     )
   }
 
   return (
     <div className={`flex-1 flex flex-col ${isMobile ? 'overflow-auto' : 'h-full'}`}>
-      {/* Add Torrent Dialog */}
-      <TorrentAddDialog onAddTorrent={addTorrent} />
-
       {/* Mobile Add Torrent FAB */}
       {isMobile && (
         <Button
-          className="fixed bottom-6 right-6 z-40 h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-primary/90 transition-all"
+          className="fixed bottom-6 right-6 z-40 h-14 w-14 rounded-full shadow-lg bg-green-600 hover:bg-green-700 text-white transition-all"
           size="sm"
-          onClick={() => document.querySelector<HTMLButtonElement>('[data-testid="add-torrent-trigger"]')?.click()}
+          onClick={() => setAddTorrentOpen(true)}
         >
           <Plus className="h-6 w-6" />
         </Button>
       )}
 
       {/* Header */}
-      <div className={`p-4 border-b border-border ${isMobile ? '' : 'bg-card/50 backdrop-blur-sm'}`}>
-        <div className="flex flex-col gap-4">
+      <div className={`p-8 border-b border-border ${isMobile ? '' : ''}`}>
+        <div className="flex flex-col gap-6">
           <div className="flex items-center justify-between">
             {!isMobile && <h1>Downloads</h1>}
             {!isMobile && (
-              <Button size="sm" className="bg-primary hover:bg-primary/90" onClick={() => document.querySelector<HTMLButtonElement>('[data-testid="add-torrent-trigger"]')?.click()}>
+              <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => setAddTorrentOpen(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 Add Torrent
               </Button>
             )}
           </div>
           
-          <div className={`flex ${isMobile ? 'flex-col' : 'items-center'} gap-4`}>
-            <Tabs value={activeTab} onValueChange={setActiveTab} className={isMobile ? 'flex-1' : 'flex-shrink-0'}>
-              <TabsList className={`${isMobile ? 'grid w-full grid-cols-3 h-12' : 'flex w-auto h-10'}`}>
-                <TabsTrigger value="all" className={isMobile ? 'py-3' : 'px-4'}>
+          <div className={`flex ${isMobile ? 'flex-col gap-4' : 'items-center gap-6'}`}>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className={isMobile ? 'w-full' : ''}>
+              <TabsList className={isMobile ? 'grid w-full grid-cols-3 h-12' : 'h-11'}>
+                <TabsTrigger value="all" className={isMobile ? 'py-3' : 'px-6 py-2'}>
                   All ({torrents.length})
                 </TabsTrigger>
                 {!isMobile && (
-                  <TabsTrigger value="active" className="px-4">
-                    Active ({torrents.filter(t => t.status === "download" || t.status === "seed").length})
+                  <TabsTrigger value="active" className="px-6 py-2">
+                    Active
                   </TabsTrigger>
                 )}
-                <TabsTrigger value="downloading" className={isMobile ? 'py-3' : 'px-4'}>
-                  Downloading ({torrents.filter(t => t.status === "download").length})
+                <TabsTrigger value="downloading" className={isMobile ? 'py-3' : 'px-6 py-2'}>
+                  Downloading
                 </TabsTrigger>
                 {!isMobile && (
-                  <TabsTrigger value="seeding" className="px-4">
-                    Seeding ({torrents.filter(t => t.status === "seed").length})
-                  </TabsTrigger>
+                  <>
+                    <TabsTrigger value="seeding" className="px-6 py-2">
+                      Seeding
+                    </TabsTrigger>
+                    <TabsTrigger value="paused" className="px-6 py-2">
+                      Paused
+                    </TabsTrigger>
+                  </>
                 )}
-                {!isMobile && (
-                  <TabsTrigger value="paused" className="px-4">
-                    Paused ({torrents.filter(t => t.status === "stopped").length})
-                  </TabsTrigger>
-                )}
-                <TabsTrigger value="finished" className={isMobile ? 'py-3' : 'px-4'}>
-                  Finished ({torrents.filter(t => t.status === "seed").length})
+                <TabsTrigger value="finished" className={isMobile ? 'py-3' : 'px-6 py-2'}>
+                  Finished
                 </TabsTrigger>
               </TabsList>
             </Tabs>
             
-            {/* Search - Mobile: below tabs, Desktop: right side */}
-            <div className={`relative ${isMobile ? 'w-full' : 'w-64 shrink-0'}`}>
+            <div className={`relative ${isMobile ? 'w-full' : 'w-80'}`}>
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search torrents..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className={`pl-10 ${isMobile ? 'h-12' : ''}`}
+                className={`pl-10 ${isMobile ? 'h-12' : 'h-11'}`}
               />
             </div>
           </div>
         </div>
       </div>
 
-      {/* Selection Controls */}
+      {/* Selection Controls - Desktop or when in selection mode on mobile */}
       {filteredTorrents.length > 0 && (
-        <div className={`p-4 border-b border-border ${isMobile ? '' : 'bg-muted/30'}`}>
-          {isMobile && !showSelection ? (
-            // Mobile: Show Select button when not in selection mode
+        <div className="px-8 py-4 border-b border-border">
+          {isMobile && !isSelectionMode ? (
             <div className="flex items-center justify-between">
               <span className="caption text-muted-foreground">
                 {filteredTorrents.length} torrent{filteredTorrents.length !== 1 ? 's' : ''}
@@ -206,31 +228,28 @@ export function DownloadsPage() {
               <Button 
                 size="sm" 
                 variant="outline"
-                onClick={toggleSelectionMode}
-                className="border-border text-foreground hover:bg-accent/50"
+                onClick={() => setIsSelectionMode(true)}
               >
                 Select
               </Button>
             </div>
           ) : (
-            // Desktop or Mobile selection mode: Show selection controls
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <Checkbox
-                  checked={selectedIds.size === filteredTorrents.length && filteredTorrents.length > 0}
+                  checked={selectedTorrents.length === filteredTorrents.length && filteredTorrents.length > 0}
                   onCheckedChange={handleSelectAll}
                 />
                 <span className="caption">
-                  Select All ({selectedIds.size}/{filteredTorrents.length})
+                  Select All ({selectedTorrents.length}/{filteredTorrents.length})
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                {selectedIds.size > 0 && (
+                {selectedTorrents.length > 0 && (
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={handleRemoveSelected}
-                    className="border-border text-foreground hover:bg-accent/50"
                   >
                     Remove Selected
                   </Button>
@@ -239,13 +258,15 @@ export function DownloadsPage() {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={toggleSelectionMode}
-                    className="border-border text-foreground hover:bg-accent/50"
+                    onClick={() => {
+                      setIsSelectionMode(false)
+                      setSelectedTorrents([])
+                    }}
                   >
                     Cancel
                   </Button>
                 )}
-                {!isMobile && selectedIds.size > 0 && (
+                {!isMobile && selectedTorrents.length > 0 && (
                   <Button size="sm" variant="ghost">
                     <MoreHorizontal className="h-4 w-4" />
                   </Button>
@@ -257,35 +278,33 @@ export function DownloadsPage() {
       )}
 
       {/* Torrent List */}
-      <div className={isMobile ? 'pb-24' : 'flex-1 overflow-auto'}>
+      <div className={`flex-1 ${isMobile ? 'pb-24' : 'overflow-auto'}`}>
         {filteredTorrents.length === 0 ? (
-          <div className={`flex items-center justify-center ${isMobile ? 'py-20' : 'h-full'}`}>
+          <div className="flex items-center justify-center h-full">
             <div className="text-center">
-              <p className="text-muted-foreground">No torrents found</p>
-              <p className="caption text-muted-foreground mt-1">
+              <p className="text-muted-foreground mb-2">No torrents found</p>
+              <p className="caption text-muted-foreground">
                 {searchQuery ? 'Try adjusting your search' : 'Add a torrent to get started'}
               </p>
             </div>
           </div>
         ) : (
-          <div>
+          <div className="divide-y divide-border">
             {filteredTorrents.map(torrent => (
-              <div key={torrent.id} className="flex items-start">
-                {(!isMobile || showSelection) && (
-                  <div className="p-4 flex items-center">
+              <div key={torrent.id} className="flex items-center px-8">
+                {(!isMobile || isSelectionMode) && (
+                  <div className="py-4 pr-4">
                     <Checkbox
-                      checked={selectedIds.has(torrent.id)}
+                      checked={selectedTorrents.includes(torrent.id)}
                       onCheckedChange={(checked) => handleSelectTorrent(torrent.id, !!checked)}
                     />
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <DownloadItemCard
+                  <TorrentItem
                     torrent={torrent}
-                    onControl={handleControl}
-                    isSelected={selectedIds.has(torrent.id)}
-                    onSelectionChange={(selected) => handleSelectTorrent(torrent.id, selected)}
-                    showSelection={showSelection}
+                    onAction={handleTorrentAction}
+                    isMobile={isMobile}
                   />
                 </div>
               </div>
@@ -294,7 +313,14 @@ export function DownloadsPage() {
         )}
       </div>
 
-      {/* Remove confirmation dialog */}
+      {/* Add Torrent Dialog */}
+      <AddTorrentDialog 
+        open={addTorrentOpen} 
+        onOpenChange={setAddTorrentOpen}
+        onAddTorrent={handleAddTorrent}
+      />
+
+      {/* Remove Torrent Dialog */}
       <TorrentRemoveDialog
         open={showRemoveDialog}
         onOpenChange={(open) => {
