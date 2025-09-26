@@ -1,9 +1,7 @@
 package routes
 
 import (
-	"encoding/base64"
 	"fmt"
-	"strings"
 
 	"github.com/pocketbase/pocketbase/core"
 
@@ -55,54 +53,10 @@ func (tr *TorrentRoutes) handleAddTorrent(re *core.RequestEvent) error {
 		return re.JSON(400, map[string]string{"error": "Invalid request body"})
 	}
 
-	// Debug logging to understand what data we're receiving
-	fmt.Printf("DEBUG: Received torrent request - Data length: %d\n", len(request.Torrent))
-	
-	// Check for obviously invalid files (too small to be real torrents)
-	if len(request.Torrent) > 0 && len(request.Torrent) < 500 && !strings.HasPrefix(request.Torrent, "magnet:") {
-		fmt.Printf("DEBUG: Data too short to be a valid torrent file: %d characters\n", len(request.Torrent))
-		fmt.Printf("DEBUG: Full data content: %q\n", request.Torrent)
-		return re.JSON(400, map[string]string{
-			"error": fmt.Sprintf("Invalid torrent file: data too short (%d characters). Real torrent files are typically 1000+ characters when base64 encoded. Please select a proper .torrent file.", len(request.Torrent)),
-		})
-	}
-	
-	if len(request.Torrent) > 0 {
-		if len(request.Torrent) < 200 {
-			fmt.Printf("DEBUG: Full torrent data: %q\n", request.Torrent)
-		} else {
-			fmt.Printf("DEBUG: First 100 chars: %q\n", request.Torrent[:100])
-			fmt.Printf("DEBUG: Last 100 chars: %q\n", request.Torrent[len(request.Torrent)-100:])
-		}
-		
-		// Check if it's a magnet link or supposed to be base64
-		if strings.HasPrefix(request.Torrent, "magnet:") {
-			fmt.Printf("DEBUG: Detected magnet link\n")
-		} else {
-			fmt.Printf("DEBUG: Treating as torrent file (base64)\n")
-			// For base64, let's see what the first few characters decode to
-			if len(request.Torrent) >= 8 {
-				decoded, err := base64.StdEncoding.DecodeString(request.Torrent[:8])
-				if err != nil {
-					fmt.Printf("DEBUG: First 8 chars not valid base64: %v\n", err)
-				} else {
-					fmt.Printf("DEBUG: First 8 chars decode to: %x\n", decoded)
-					// Check if decoded data starts with torrent file signature
-					if len(decoded) >= 6 && string(decoded[:6]) == "d8:ann" {
-						fmt.Printf("DEBUG: Data appears to start with torrent signature\n")
-					} else {
-						fmt.Printf("DEBUG: Data does NOT appear to be a torrent file\n")
-					}
-				}
-			}
-		}
-	}
-
 	// Add torrent using service
 	ctx := re.Request.Context()
 	torrentData, err := tr.service.AddTorrent(ctx, request)
 	if err != nil {
-		fmt.Printf("DEBUG: Service error: %v\n", err)
 		return re.JSON(400, map[string]string{"error": err.Error()})
 	}
 

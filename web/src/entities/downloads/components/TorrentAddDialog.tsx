@@ -44,23 +44,17 @@ export function TorrentAddDialog({ onAddTorrent }: TorrentAddDialogProps) {
       // Convert file to base64 - use simple, reliable approach
       const base64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader()
-        reader.onload = (event) => {
+        reader.onload = () => {
           try {
-            const result = event.target?.result as string
+            const result = reader.result as string  // FIXED: Use reader.result, not event.target.result
             if (!result) {
               reject(new Error('Failed to read file'))
               return
             }
             
             // Data URL format: "data:application/octet-stream;base64,<base64data>"
-            // Find the comma and extract everything after it
-            const commaIndex = result.indexOf(',')
-            if (commaIndex === -1) {
-              reject(new Error('Invalid file format'))
-              return
-            }
-            
-            const base64Data = result.substring(commaIndex + 1)
+            // Remove the data:application/octet-stream;base64, prefix
+            const base64Data = result.split(',')[1]
             
             // Debug logging to understand the data
             console.log('File reading debug:', {
@@ -72,23 +66,6 @@ export function TorrentAddDialog({ onAddTorrent }: TorrentAddDialogProps) {
               firstChars: base64Data.substring(0, 20),
               lastChars: base64Data.length > 20 ? base64Data.substring(base64Data.length - 20) : 'N/A'
             })
-            
-            // Validate minimum size (torrent files should be much larger when base64 encoded)
-            if (base64Data.length < 500) {  // More realistic minimum - real torrent files are typically 1000+ chars when encoded
-              const fileInfo = `File: ${file.name} (${file.size} bytes, type: ${file.type || 'unknown'})`
-              const dataInfo = `Base64 length: ${base64Data.length} characters`
-              const expectedInfo = `Expected: 1000+ characters for a real torrent file`
-              
-              console.error('File too small to be a valid torrent:', {
-                file: fileInfo,
-                data: dataInfo,
-                expected: expectedInfo,
-                actualData: base64Data
-              })
-              
-              reject(new Error(`Invalid torrent file selected.\n\n${fileInfo}\n${dataInfo}\n${expectedInfo}\n\nPlease select a proper .torrent file (typically several KB in size).`))
-              return
-            }
             
             resolve(base64Data)
           } catch (error) {
