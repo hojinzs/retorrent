@@ -1,8 +1,8 @@
 import { Button } from "@shared/components/ui/button"
 import { Input } from "@shared/components/ui/input"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@shared/components/ui/tabs"
+import { Tabs, TabsList, TabsTrigger } from "@shared/components/ui/tabs"
 import { Plus, Search, MoreHorizontal } from "lucide-react"
-import { TorrentItem } from "../components/TorrentItem"
+import { TorrentItem, type TorrentData } from "../components/TorrentItem"
 import { Checkbox } from "@shared/components/ui/checkbox"
 import { AddTorrentDialog } from "../components/AddTorrentDialog"
 import { useIsMobile } from "@shared/hooks/use-mobile"
@@ -12,18 +12,30 @@ import { RefreshCw, WifiOff } from "lucide-react"
 import { useState, useCallback } from "react"
 
 // Convert backend torrent data to TorrentData format for the TorrentItem component
-const convertTorrentData = (backendTorrent: any) => ({
-  id: backendTorrent.id,
-  name: backendTorrent.name,
-  progress: Math.round(backendTorrent.percentDone * 100),
-  downloadSpeed: backendTorrent.rateDownload > 0 ? `${(backendTorrent.rateDownload / 1024 / 1024).toFixed(1)} MB/s` : '0 KB/s',
-  uploadSpeed: backendTorrent.rateUpload > 0 ? `${(backendTorrent.rateUpload / 1024 / 1024).toFixed(1)} MB/s` : '0 KB/s',
-  size: `${(backendTorrent.sizeWhenDone / 1024 / 1024 / 1024).toFixed(1)} GB`,
-  status: backendTorrent.status === 'download' ? 'downloading' :
-          backendTorrent.status === 'seed' ? 'seeding' :
-          backendTorrent.status === 'stopped' ? 'paused' : 'completed',
-  eta: backendTorrent.eta > 0 ? `${Math.round(backendTorrent.eta / 60)}m ${backendTorrent.eta % 60}s` : '∞'
-});
+const convertTorrentData = (backendTorrent: any): TorrentData => {
+  let status: 'downloading' | 'seeding' | 'paused' | 'completed';
+  
+  if (backendTorrent.status === 'download') {
+    status = 'downloading';
+  } else if (backendTorrent.status === 'seed') {
+    status = 'seeding';
+  } else if (backendTorrent.status === 'stopped') {
+    status = 'paused';
+  } else {
+    status = 'completed';
+  }
+
+  return {
+    id: backendTorrent.id,
+    name: backendTorrent.name,
+    progress: Math.round(backendTorrent.percentDone * 100),
+    downloadSpeed: backendTorrent.rateDownload > 0 ? `${(backendTorrent.rateDownload / 1024 / 1024).toFixed(1)} MB/s` : '0 KB/s',
+    uploadSpeed: backendTorrent.rateUpload > 0 ? `${(backendTorrent.rateUpload / 1024 / 1024).toFixed(1)} MB/s` : '0 KB/s',
+    size: `${(backendTorrent.sizeWhenDone / 1024 / 1024 / 1024).toFixed(1)} GB`,
+    status,
+    eta: backendTorrent.eta > 0 ? `${Math.round(backendTorrent.eta / 60)}m ${backendTorrent.eta % 60}s` : '∞'
+  };
+};
 
 export function DownloadsPage() {
   const isMobile = useIsMobile()
@@ -109,9 +121,15 @@ export function DownloadsPage() {
   const handleAddTorrent = async (data: { type: 'magnet' | 'file', content: string, directory?: string, autoStart: boolean }) => {
     try {
       if (data.type === 'magnet') {
-        await addTorrent({ magnetLink: data.content })
+        await addTorrent(data.content, { 
+          downloadDir: data.directory, 
+          autoStart: data.autoStart 
+        })
       } else {
-        await addTorrent({ file: data.content })
+        await addTorrent(data.content, { 
+          downloadDir: data.directory, 
+          autoStart: data.autoStart 
+        })
       }
       setAddTorrentOpen(false)
     } catch (error) {
@@ -304,7 +322,6 @@ export function DownloadsPage() {
                   <TorrentItem
                     torrent={torrent}
                     onAction={handleTorrentAction}
-                    isMobile={isMobile}
                   />
                 </div>
               </div>

@@ -17,10 +17,9 @@ export interface TorrentData {
 interface TorrentItemProps {
   torrent: TorrentData;
   onAction: (id: string, action: 'play' | 'pause' | 'remove') => void;
-  isMobile: boolean;
 }
 
-export function TorrentItem({ torrent, onAction, isMobile }: TorrentItemProps) {
+export function TorrentItem({ torrent, onAction }: TorrentItemProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'downloading': return 'text-primary';

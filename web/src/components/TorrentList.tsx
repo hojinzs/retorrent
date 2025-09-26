@@ -337,9 +337,11 @@ export function TorrentList({ isMobile }: TorrentListProps) {
                 <div className="flex-1 min-w-0">
                   <TorrentItem
                     torrent={torrent}
-                    onPause={handlePause}
-                    onResume={handleResume}
-                    onRemove={handleRemove}
+                    onAction={(id, action) => {
+                      if (action === 'play') handleResume(id);
+                      else if (action === 'pause') handlePause(id);
+                      else if (action === 'remove') handleRemove(id);
+                    }}
                   />
                 </div>
               </div>
