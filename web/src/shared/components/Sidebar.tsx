@@ -1,22 +1,23 @@
-import { Download, Settings, Sun, Moon, User } from "lucide-react";
+import { Download, Settings, Users, Sun, Moon, User } from "lucide-react";
 import { Button } from "./ui/button";
-import { Link } from "@tanstack/react-router";
 
 interface SidebarProps {
   isDark: boolean;
   onThemeToggle: () => void;
-  activePath: string;
+  activePage: string;
+  onPageChange: (page: string) => void;
   isMobile: boolean;
   isOpen: boolean;
   onClose: () => void;
 }
 
 const menuItems = [
-  { id: 'downloads', label: 'Downloads', icon: Download, path: '/downloads' },
-  { id: 'preferences', label: 'Preferences', icon: Settings, path: '/preferences' },
+  { id: 'downloads', label: 'Downloads', icon: Download },
+  { id: 'preferences', label: 'Preferences', icon: Settings },
+  { id: 'users', label: 'Users', icon: Users },
 ];
 
-export function Sidebar({ isDark, onThemeToggle, activePath, isMobile, isOpen, onClose }: SidebarProps) {
+export function Sidebar({ isDark, onThemeToggle, activePage, onPageChange, isMobile, isOpen, onClose }: SidebarProps) {
   const sidebarClasses = `
     ${isMobile ? 'fixed inset-y-0 left-0 z-50 w-80 transform transition-transform duration-300 ease-in-out' : 'w-80'}
     ${isMobile && !isOpen ? '-translate-x-full' : 'translate-x-0'}
@@ -54,27 +55,26 @@ export function Sidebar({ isDark, onThemeToggle, activePath, isMobile, isOpen, o
           <nav className="flex-1 p-4 space-y-2">
             {menuItems.map((item) => {
               const Icon = item.icon;
-              const isActive = activePath === item.path;
+              const isActive = activePage === item.id;
               return (
-                <Link
+                <Button
                   key={item.id}
-                  to={item.path}
-                  onClick={isMobile ? onClose : undefined}
+                  variant="ghost"
+                  className={`
+                    w-full justify-start h-11 px-4 rounded-lg transition-all
+                    ${isActive 
+                      ? 'bg-primary text-primary-foreground hover:bg-primary/90' 
+                      : 'hover:bg-accent/50 text-sidebar-foreground'
+                    }
+                  `}
+                  onClick={() => {
+                    onPageChange(item.id);
+                    if (isMobile) onClose();
+                  }}
                 >
-                  <Button
-                    variant="ghost"
-                    className={`
-                      w-full justify-start h-11 px-4 rounded-lg transition-all
-                      ${isActive 
-                        ? 'bg-primary text-primary-foreground hover:bg-primary/90' 
-                        : 'hover:bg-accent/50 text-sidebar-foreground'
-                      }
-                    `}
-                  >
-                    <Icon className="mr-3 h-5 w-5" />
-                    <span className="caption">{item.label}</span>
-                  </Button>
-                </Link>
+                  <Icon className="mr-3 h-5 w-5" />
+                  <span className="caption">{item.label}</span>
+                </Button>
               );
             })}
           </nav>
