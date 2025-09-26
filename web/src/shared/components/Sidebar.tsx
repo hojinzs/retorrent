@@ -1,23 +1,23 @@
 import { Download, Settings, Users, Sun, Moon, User } from "lucide-react";
 import { Button } from "./ui/button";
+import { Link } from "@tanstack/react-router";
 
 interface SidebarProps {
   isDark: boolean;
   onThemeToggle: () => void;
-  activePage: string;
-  onPageChange: (page: string) => void;
+  activePath: string;
   isMobile: boolean;
   isOpen: boolean;
   onClose: () => void;
 }
 
 const menuItems = [
-  { id: 'downloads', label: 'Downloads', icon: Download },
-  { id: 'preferences', label: 'Preferences', icon: Settings },
-  { id: 'users', label: 'Users', icon: Users },
+  { id: 'downloads', label: 'Downloads', icon: Download, path: '/downloads' },
+  { id: 'preferences', label: 'Preferences', icon: Settings, path: '/preferences' },
+  { id: 'users', label: 'Users', icon: Users, path: '/users' },
 ];
 
-export function Sidebar({ isDark, onThemeToggle, activePage, onPageChange, isMobile, isOpen, onClose }: SidebarProps) {
+export function Sidebar({ isDark, onThemeToggle, activePath, isMobile, isOpen, onClose }: SidebarProps) {
   const sidebarClasses = `
     ${isMobile ? 'fixed inset-y-0 left-0 z-50 w-80 transform transition-transform duration-300 ease-in-out' : 'w-80'}
     ${isMobile && !isOpen ? '-translate-x-full' : 'translate-x-0'}
@@ -55,26 +55,42 @@ export function Sidebar({ isDark, onThemeToggle, activePage, onPageChange, isMob
           <nav className="flex-1 p-4 space-y-2">
             {menuItems.map((item) => {
               const Icon = item.icon;
-              const isActive = activePage === item.id;
+              const isActive = activePath === item.path;
+              
+              if (item.id === 'users') {
+                // Users page not implemented yet, show as disabled
+                return (
+                  <Button
+                    key={item.id}
+                    variant="ghost"
+                    disabled
+                    className={`
+                      w-full justify-start h-11 px-4 rounded-lg transition-all opacity-50 cursor-not-allowed
+                      text-sidebar-foreground
+                    `}
+                  >
+                    <Icon className="mr-3 h-5 w-5" />
+                    <span className="caption">{item.label}</span>
+                  </Button>
+                );
+              }
+              
               return (
-                <Button
-                  key={item.id}
-                  variant="ghost"
-                  className={`
-                    w-full justify-start h-11 px-4 rounded-lg transition-all
-                    ${isActive 
-                      ? 'bg-primary text-primary-foreground hover:bg-primary/90' 
-                      : 'hover:bg-accent/50 text-sidebar-foreground'
-                    }
-                  `}
-                  onClick={() => {
-                    onPageChange(item.id);
-                    if (isMobile) onClose();
-                  }}
-                >
-                  <Icon className="mr-3 h-5 w-5" />
-                  <span className="caption">{item.label}</span>
-                </Button>
+                <Link key={item.id} to={item.path} onClick={isMobile ? onClose : undefined}>
+                  <Button
+                    variant="ghost"
+                    className={`
+                      w-full justify-start h-11 px-4 rounded-lg transition-all
+                      ${isActive 
+                        ? 'bg-primary text-primary-foreground hover:bg-primary/90' 
+                        : 'hover:bg-accent/50 text-sidebar-foreground'
+                      }
+                    `}
+                  >
+                    <Icon className="mr-3 h-5 w-5" />
+                    <span className="caption">{item.label}</span>
+                  </Button>
+                </Link>
               );
             })}
           </nav>

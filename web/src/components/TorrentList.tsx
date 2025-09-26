@@ -6,121 +6,55 @@ import { Plus, Search, MoreHorizontal } from "lucide-react";
 import { TorrentItem, type TorrentData } from "./TorrentItem";
 import { Checkbox } from "@shared/components/ui/checkbox";
 import { AddTorrentDialog } from "./AddTorrentDialog";
+import { useTorrents } from "../entities/downloads/hooks/useTorrents";
+import { TorrentRemoveDialog } from "../entities/downloads/components/TorrentRemoveDialog";
+import { RefreshCw, WifiOff } from "lucide-react";
 
 interface TorrentListProps {
   isMobile: boolean;
 }
 
-const mockTorrents: TorrentData[] = [
-  {
-    id: '1',
-    name: 'Ubuntu 22.04.3 Desktop amd64.iso',
-    progress: 85,
-    downloadSpeed: '2.4 MB/s',
-    uploadSpeed: '0.8 MB/s',
-    size: '4.6 GB',
-    status: 'downloading',
-    eta: '5m 32s'
-  },
-  {
-    id: '2',
-    name: 'Linux Mint 21.2 Cinnamon',
-    progress: 100,
-    downloadSpeed: '0 KB/s',
-    uploadSpeed: '1.2 MB/s',
-    size: '2.8 GB',
-    status: 'seeding',
-    eta: '∞'
-  },
-  {
-    id: '3',
-    name: 'Fedora 38 Workstation',
-    progress: 45,
-    downloadSpeed: '0 KB/s',
-    uploadSpeed: '0 KB/s',
-    size: '1.9 GB',
-    status: 'paused',
-    eta: '∞'
-  },
-  {
-    id: '4',
-    name: 'Debian 12.2.0 netinst amd64',
-    progress: 67,
-    downloadSpeed: '1.8 MB/s',
-    uploadSpeed: '0.3 MB/s',
-    size: '658 MB',
-    status: 'downloading',
-    eta: '2m 15s'
-  },
-  {
-    id: '5',
-    name: 'openSUSE Tumbleweed DVD x86_64',
-    progress: 100,
-    downloadSpeed: '0 KB/s',
-    uploadSpeed: '2.1 MB/s',
-    size: '4.2 GB',
-    status: 'completed',
-    eta: '∞'
-  },
-  {
-    id: '6',
-    name: 'Manjaro KDE Plasma 23.0.4',
-    progress: 23,
-    downloadSpeed: '3.2 MB/s',
-    uploadSpeed: '0.1 MB/s',
-    size: '3.5 GB',
-    status: 'downloading',
-    eta: '18m 42s'
-  },
-  {
-    id: '7',
-    name: 'Arch Linux 2023.11.01 x86_64',
-    progress: 100,
-    downloadSpeed: '0 KB/s',
-    uploadSpeed: '0.9 MB/s',
-    size: '853 MB',
-    status: 'seeding',
-    eta: '∞'
-  },
-  {
-    id: '8',
-    name: 'CentOS Stream 9 x86_64 dvd1',
-    progress: 12,
-    downloadSpeed: '0 KB/s',
-    uploadSpeed: '0 KB/s',
-    size: '9.5 GB',
-    status: 'paused',
-    eta: '∞'
-  }
-];
+// Convert backend torrent data to TorrentData format
+const convertTorrentData = (backendTorrent: any): TorrentData => ({
+  id: backendTorrent.id,
+  name: backendTorrent.name,
+  progress: Math.round(backendTorrent.percentDone * 100),
+  downloadSpeed: backendTorrent.rateDownload > 0 ? `${(backendTorrent.rateDownload / 1024 / 1024).toFixed(1)} MB/s` : '0 KB/s',
+  uploadSpeed: backendTorrent.rateUpload > 0 ? `${(backendTorrent.rateUpload / 1024 / 1024).toFixed(1)} MB/s` : '0 KB/s',
+  size: `${(backendTorrent.sizeWhenDone / 1024 / 1024 / 1024).toFixed(1)} GB`,
+  status: backendTorrent.status === 'download' ? 'downloading' :
+          backendTorrent.status === 'seed' ? 'seeding' :
+          backendTorrent.status === 'stopped' ? 'paused' : 'completed',
+  eta: backendTorrent.eta > 0 ? `${Math.round(backendTorrent.eta / 60)}m ${backendTorrent.eta % 60}s` : '∞'
+});
 
 export function TorrentList({ isMobile }: TorrentListProps) {
-  const [torrents, setTorrents] = useState<TorrentData[]>(mockTorrents);
+  const { torrents: backendTorrents, isLoading, error, forceSync, controlTorrent, addTorrent, removeTorrents } = useTorrents();
   const [selectedTorrents, setSelectedTorrents] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   const [addTorrentOpen, setAddTorrentOpen] = useState(false);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [showRemoveDialog, setShowRemoveDialog] = useState(false);
+  const [removeTargets, setRemoveTargets] = useState<any[]>([]);
+
+  // Convert backend data to TorrentData format
+  const torrents = backendTorrents.map(convertTorrentData);
 
   const handleAddTorrent = () => {
     setAddTorrentOpen(true);
   };
 
-  const handleAddTorrentSubmit = (data: { type: 'magnet' | 'file', content: string, directory?: string, autoStart: boolean }) => {
-    // Create new torrent entry
-    const newTorrent: TorrentData = {
-      id: Date.now().toString(),
-      name: data.type === 'magnet' ? 'New Magnet Link' : data.content,
-      progress: 0,
-      downloadSpeed: '0 KB/s',
-      uploadSpeed: '0 KB/s',
-      size: 'Unknown',
-      status: data.autoStart ? 'downloading' : 'paused',
-      eta: '∞'
-    };
-    
-    setTorrents([newTorrent, ...torrents]);
-    console.log('Torrent added:', data);
+  const handleAddTorrentSubmit = async (data: { type: 'magnet' | 'file', content: string, directory?: string, autoStart: boolean }) => {
+    try {
+      if (data.type === 'magnet') {
+        await addTorrent(data.content, { downloadDir: data.directory, autoStart: data.autoStart });
+      }
+      // For file uploads, you'd need to implement file handling in the backend
+      console.log('Torrent added:', data);
+    } catch (error) {
+      console.error('Failed to add torrent:', error);
+    }
   };
 
   const filteredTorrents = torrents.filter(torrent => {
@@ -150,26 +84,39 @@ export function TorrentList({ isMobile }: TorrentListProps) {
     }
   };
 
-  const handlePause = (id: string) => {
-    setTorrents(torrents.map(t => 
-      t.id === id ? { ...t, status: 'paused' as const } : t
-    ));
+  const handlePause = async (id: string) => {
+    const backendTorrent = backendTorrents.find(t => t.id === id);
+    if (backendTorrent) {
+      await controlTorrent(backendTorrent.id, 'stop');
+    }
   };
 
-  const handleResume = (id: string) => {
-    setTorrents(torrents.map(t => 
-      t.id === id ? { ...t, status: 'downloading' as const } : t
-    ));
+  const handleResume = async (id: string) => {
+    const backendTorrent = backendTorrents.find(t => t.id === id);
+    if (backendTorrent) {
+      await controlTorrent(backendTorrent.id, 'start');
+    }
   };
 
   const handleRemove = (id: string) => {
-    setTorrents(torrents.filter(t => t.id !== id));
-    setSelectedTorrents(selectedTorrents.filter(tid => tid !== id));
+    const target = backendTorrents.find(t => t.id === id);
+    if (target) {
+      setRemoveTargets([target]);
+      setShowRemoveDialog(true);
+    }
   };
 
   const handleRemoveSelected = () => {
-    setTorrents(torrents.filter(t => !selectedTorrents.includes(t.id)));
+    const targets = backendTorrents.filter(t => selectedTorrents.includes(t.id));
+    setRemoveTargets(targets);
+    setShowRemoveDialog(true);
+  };
+
+  const handleRemoveConfirm = async (ids: number[], deleteLocalData: boolean) => {
+    await removeTorrents(ids, deleteLocalData);
     setSelectedTorrents([]);
+    setRemoveTargets([]);
+    setShowRemoveDialog(false);
   };
 
   const toggleSelectionMode = () => {
@@ -179,6 +126,25 @@ export function TorrentList({ isMobile }: TorrentListProps) {
     }
   };
 
+  // Error state
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <WifiOff className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <div>
+            <h3 className="text-lg font-medium">Connection Error</h3>
+            <p className="text-muted-foreground">Failed to connect to Transmission daemon</p>
+          </div>
+          <Button onClick={forceSync} className="mt-4">
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`flex-1 flex flex-col ${isMobile ? 'overflow-auto' : 'h-full'}`}>
       {/* Add Torrent Dialog */}
@@ -186,6 +152,17 @@ export function TorrentList({ isMobile }: TorrentListProps) {
         open={addTorrentOpen}
         onOpenChange={setAddTorrentOpen}
         onAddTorrent={handleAddTorrentSubmit}
+      />
+
+      {/* Remove Torrent Dialog */}
+      <TorrentRemoveDialog
+        open={showRemoveDialog}
+        onOpenChange={(open) => {
+          setShowRemoveDialog(open)
+          if (!open) setRemoveTargets([])
+        }}
+        torrents={removeTargets}
+        onRemove={handleRemoveConfirm}
       />
 
       {/* Mobile Add Torrent FAB */}
@@ -205,10 +182,22 @@ export function TorrentList({ isMobile }: TorrentListProps) {
           <div className="flex items-center justify-between">
             {!isMobile && <h1>Downloads</h1>}
             {!isMobile && (
-              <Button size="sm" className="bg-primary hover:bg-primary/90" onClick={handleAddTorrent}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Torrent
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={forceSync}
+                  disabled={isLoading}
+                  className="flex items-center gap-2"
+                >
+                  <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                  Sync
+                </Button>
+                <Button size="sm" className="bg-primary hover:bg-primary/90" onClick={handleAddTorrent}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Torrent
+                </Button>
+              </div>
             )}
           </div>
           
@@ -320,7 +309,11 @@ export function TorrentList({ isMobile }: TorrentListProps) {
 
       {/* Torrent List */}
       <div className={isMobile ? 'pb-24' : 'flex-1 overflow-auto'}>
-        {filteredTorrents.length === 0 ? (
+        {isLoading && torrents.length === 0 ? (
+          <div className="flex items-center justify-center h-32">
+            <RefreshCw className="h-6 w-6 animate-spin" />
+          </div>
+        ) : filteredTorrents.length === 0 ? (
           <div className={`flex items-center justify-center ${isMobile ? 'py-20' : 'h-full'}`}>
             <div className="text-center">
               <p className="text-muted-foreground">No torrents found</p>
