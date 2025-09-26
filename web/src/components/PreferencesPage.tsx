@@ -7,11 +7,13 @@ import { Label } from "@shared/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@shared/components/ui/select";
 import { Separator } from "@shared/components/ui/separator";
 import { FolderOpen, Save, RotateCcw } from "lucide-react";
-import { useIsMobile } from "@shared/hooks/use-mobile";
 
-export default function Preferences() {
+interface PreferencesPageProps {
+  isMobile: boolean;
+}
+
+export function PreferencesPage({ isMobile }: PreferencesPageProps) {
   const [activeTab, setActiveTab] = useState('torrents');
-  const isMobile = useIsMobile();
 
   // Initial values for comparison
   const initialValues = {
@@ -159,10 +161,10 @@ export default function Preferences() {
   return (
     <div className={`flex-1 flex flex-col ${isMobile ? 'overflow-auto' : 'h-full'}`}>
       {/* Header */}
-      <div className={`${isMobile ? 'p-4' : 'p-8'} border-b border-border`}>
+      <div className={`p-4 border-b border-border ${isMobile ? '' : 'bg-card/50 backdrop-blur-sm'}`}>
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
-            <h1>Preferences</h1>
+            {!isMobile && <h1>Preferences</h1>}
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className={isMobile ? 'flex-1' : 'flex-shrink-0'}>
@@ -185,7 +187,7 @@ export default function Preferences() {
       </div>
 
       {/* Content */}
-      <div className={`flex-1 ${isMobile ? 'p-4' : 'p-6'} ${isMobile ? 'pb-6' : 'overflow-auto'}`}>
+      <div className={`flex-1 p-6 ${isMobile ? 'pb-6' : 'overflow-auto'}`}>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsContent value="torrents" className="space-y-6 mt-0">
             <div className="space-y-6">
@@ -700,5 +702,5 @@ export default function Preferences() {
         </Tabs>
       </div>
     </div>
-  )
+  );
 }
