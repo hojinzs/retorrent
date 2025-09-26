@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, type ReactNode } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -14,12 +14,16 @@ import { Label } from '@shared/components/ui/label'
 import { Checkbox } from '@shared/components/ui/checkbox'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@shared/components/ui/tabs'
 import { Plus, Upload, Magnet, Loader2 } from 'lucide-react'
+import { cn } from '@shared/lib/utils'
 
 interface TorrentAddDialogProps {
   onAddTorrent: (torrent: string, options?: { downloadDir?: string; autoStart?: boolean }) => Promise<any>
+  triggerProps?: Omit<React.ComponentProps<typeof Button>, 'children'>
+  triggerLabel?: ReactNode
+  iconOnly?: boolean
 }
 
-export function TorrentAddDialog({ onAddTorrent }: TorrentAddDialogProps) {
+export function TorrentAddDialog({ onAddTorrent, triggerProps, triggerLabel, iconOnly = false }: TorrentAddDialogProps) {
   const [open, setOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [activeTab, setActiveTab] = useState('magnet')
@@ -107,9 +111,19 @@ export function TorrentAddDialog({ onAddTorrent }: TorrentAddDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Torrent
+        <Button
+          {...triggerProps}
+          className={cn(
+            'bg-emerald-700 text-white shadow-lg shadow-emerald-700/20 hover:bg-emerald-600 focus-visible:ring-emerald-400',
+            triggerProps?.className
+          )}
+        >
+          <Plus className={cn('h-4 w-4', !iconOnly && 'mr-2')} />
+          {iconOnly ? (
+            <span className="sr-only">{typeof triggerLabel === 'string' ? triggerLabel : 'Add Torrent'}</span>
+          ) : (
+            triggerLabel ?? 'Add Torrent'
+          )}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
