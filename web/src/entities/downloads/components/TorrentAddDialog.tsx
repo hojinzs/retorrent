@@ -41,23 +41,49 @@ export function TorrentAddDialog({ onAddTorrent }: TorrentAddDialogProps) {
       setError(null)
       setIsSubmitting(true)
 
-      // Convert file to base64 using modern approach
+      // Convert file to base64 - using reliable data URL approach
       const base64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader()
         reader.onload = () => {
           try {
-            const result = reader.result as ArrayBuffer
-            // Convert ArrayBuffer to base64 using modern approach
-            const uint8Array = new Uint8Array(result)
-            const binaryString = Array.from(uint8Array, byte => String.fromCharCode(byte)).join('')
-            const base64Data = btoa(binaryString)
+            const result = reader.result as string
+            // Data URLs have format: data:[<mediatype>][;base64],<data>
+            // Find the comma that separates metadata from data
+            const commaIndex = result.indexOf(',')
+            if (commaIndex === -1 || commaIndex === result.length - 1) {
+              reject(new Error('Invalid data URL format'))
+              return
+            }
+            // Extract everything after the comma
+            const base64Data = result.substring(commaIndex + 1)
+            // Basic validation - check if it looks like base64
+            if (!base64Data || base64Data.length === 0) {
+              reject(new Error('Empty base64 data'))
+              return
+            }
+            
+            // Additional validation - check if it contains only valid base64 characters
+            const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/
+            if (!base64Regex.test(base64Data)) {
+              console.error('Invalid base64 characters detected:', base64Data.substring(0, 100))
+              reject(new Error('Generated data contains invalid base64 characters'))
+              return
+            }
+            
+            console.log('File successfully converted to base64:', {
+              fileName: file.name,
+              fileSize: file.size,
+              base64Length: base64Data.length,
+              firstChars: base64Data.substring(0, 20)
+            })
+            
             resolve(base64Data)
           } catch (error) {
             reject(error)
           }
         }
-        reader.onerror = () => reject(reader.error)
-        reader.readAsArrayBuffer(file)
+        reader.onerror = () => reject(reader.error || new Error('Failed to read file'))
+        reader.readAsDataURL(file)
       })
 
       await onAddTorrent(base64, {

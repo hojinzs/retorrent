@@ -1,7 +1,6 @@
 package routes
 
 import (
-	"encoding/base64"
 	"fmt"
 	"log"
 	"strings"
@@ -9,7 +8,6 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 
 	"backend/internal/torrent"
-	"backend/internal/utils"
 )
 
 // TorrentRoutes handles torrent-related HTTP routes
@@ -80,38 +78,27 @@ func (tr *TorrentRoutes) handleAddTorrent(re *core.RequestEvent) error {
 		log.Printf("handleAddTorrent: Processing torrent file (base64)")
 		log.Printf("handleAddTorrent: Raw torrent data length: %d", len(request.Torrent))
 		
-		// Log a safe sample of the data for debugging
-		sample := request.Torrent
-		if len(sample) > 200 {
-			sample = sample[:100] + "..." + sample[len(sample)-100:]
-		}
-		log.Printf("handleAddTorrent: Data sample: %s", sample)
-		
-		// For debugging: temporarily try to decode without validation to see what happens
+		// Log detailed information about the data
 		if len(request.Torrent) > 0 {
-			rawDecoded, rawErr := base64.StdEncoding.DecodeString(request.Torrent)
-			log.Printf("handleAddTorrent: Raw base64 decode attempt - success: %t, decoded length: %d, error: %v", 
-				rawErr == nil, len(rawDecoded), rawErr)
-		}
-		
-		// Try our robust validation
-		cleanedTorrent, err := utils.ValidateAndCleanBase64(request.Torrent)
-		if err != nil {
-			log.Printf("handleAddTorrent: ERROR - Robust validation failed: %v", err)
-			log.Printf("handleAddTorrent: This might indicate a fundamental issue with the data")
-			
-			// As a last resort, let's try to continue without validation to see what happens downstream
-			log.Printf("handleAddTorrent: WARNING - Proceeding without base64 validation for debugging")
-			cleanedTorrent = request.Torrent
-		} else {
-			log.Printf("handleAddTorrent: Robust validation succeeded")
-			if len(cleanedTorrent) != len(request.Torrent) {
-				log.Printf("handleAddTorrent: Base64 data was cleaned - original: %d, cleaned: %d", len(request.Torrent), len(cleanedTorrent))
+			// Show first few characters as hex for debugging
+			sample := request.Torrent
+			if len(sample) > 50 {
+				sample = sample[:50]
 			}
+			log.Printf("handleAddTorrent: First 50 chars: %q", sample)
+			log.Printf("handleAddTorrent: First 10 bytes as hex: %x", []byte(sample)[:minInt(10, len(sample))])
 		}
 		
-		// Always proceed with the request to see what happens downstream
-		request.Torrent = cleanedTorrent
+		// Check if it's completely empty or just whitespace
+		trimmed := strings.TrimSpace(request.Torrent)
+		if len(trimmed) == 0 {
+			log.Printf("handleAddTorrent: ERROR - Data is empty or only whitespace")
+			return re.JSON(400, map[string]string{"error": "Torrent data is empty"})
+		}
+		
+		// For now, let's try to continue with the original data to see what the transmission client reports
+		log.Printf("handleAddTorrent: Proceeding with torrent data (length: %d)", len(request.Torrent))
+		// Don't modify the torrent data - pass it through as-is for debugging
 	}
 
 	// Add torrent using service
@@ -174,4 +161,12 @@ func (tr *TorrentRoutes) handleTorrentAction(re *core.RequestEvent) error {
 		"success": true,
 		"message": fmt.Sprintf("Torrent %s successful", request.Action),
 	})
+}
+
+// minInt returns the minimum of two integers
+func minInt(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
