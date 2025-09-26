@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/pocketbase/pocketbase"
 
@@ -47,33 +48,58 @@ type ActionRequest struct {
 
 // AddTorrent adds a new torrent
 func (s *Service) AddTorrent(ctx context.Context, req AddTorrentRequest) (*transmission.TorrentData, error) {
+	log.Printf("Service.AddTorrent: Starting with torrent data length: %d", len(req.Torrent))
+	
 	if s.transmissionClient == nil {
+		log.Printf("Service.AddTorrent: ERROR - transmission client not available")
 		return nil, fmt.Errorf("transmission client not available")
 	}
 
 	if req.Torrent == "" {
+		log.Printf("Service.AddTorrent: ERROR - torrent data is empty")
 		return nil, fmt.Errorf("torrent data is required")
 	}
 
+	// Log request details
+	log.Printf("Service.AddTorrent: Request details - DownloadDir: %v, AutoStart: %v", req.DownloadDir, req.AutoStart)
+	
+	// Determine if it's a magnet link or file
+	if strings.HasPrefix(req.Torrent, "magnet:") {
+		log.Printf("Service.AddTorrent: Detected magnet link")
+	} else {
+		log.Printf("Service.AddTorrent: Detected torrent file data (base64)")
+	}
+
 	// Add torrent
+	log.Printf("Service.AddTorrent: Calling transmissionClient.AddTorrent")
 	torrentData, err := s.transmissionClient.AddTorrent(ctx, req.Torrent, req.DownloadDir)
 	if err != nil {
+		log.Printf("Service.AddTorrent: ERROR from transmissionClient.AddTorrent: %v", err)
 		return nil, fmt.Errorf("failed to add torrent: %w", err)
 	}
+	
+	log.Printf("Service.AddTorrent: transmissionClient.AddTorrent succeeded - ID: %d, Name: %s", torrentData.ID, torrentData.Name)
 
 	// Auto start if requested
 	if req.AutoStart != nil && *req.AutoStart && torrentData != nil {
+		log.Printf("Service.AddTorrent: Auto-starting torrent ID: %d", torrentData.ID)
 		if err := s.transmissionClient.StartTorrents(ctx, []int64{torrentData.ID}); err != nil {
-			log.Printf("Failed to auto-start torrent %d: %v", torrentData.ID, err)
+			log.Printf("Service.AddTorrent: WARNING - Failed to auto-start torrent %d: %v", torrentData.ID, err)
 			// Don't fail the request, just log the error
+		} else {
+			log.Printf("Service.AddTorrent: Successfully auto-started torrent ID: %d", torrentData.ID)
 		}
 	}
 
 	// Force sync to update the database
+	log.Printf("Service.AddTorrent: Triggering sync to update database")
 	if err := s.syncService.ForceSync(); err != nil {
-		log.Printf("Failed to sync after adding torrent: %v", err)
+		log.Printf("Service.AddTorrent: WARNING - Failed to sync after adding torrent: %v", err)
+	} else {
+		log.Printf("Service.AddTorrent: Successfully triggered sync")
 	}
 
+	log.Printf("Service.AddTorrent: Completed successfully - returning torrent ID: %d", torrentData.ID)
 	return torrentData, nil
 }
 

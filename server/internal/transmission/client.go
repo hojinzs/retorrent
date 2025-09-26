@@ -2,6 +2,7 @@ package transmission
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"log"
 	"net/url"
@@ -213,23 +214,57 @@ func mapTransmissionStatus(status transmissionrpc.TorrentStatus) TorrentStatus {
 
 // AddTorrent adds a new torrent by magnet link or base64-encoded torrent file
 func (c *Client) AddTorrent(ctx context.Context, torrentData string, downloadDir *string) (*TorrentData, error) {
-	// Create TorrentAddPayload
+	// Create TorrentAddPayload - default to paused, will be started separately if needed
 	payload := transmissionrpc.TorrentAddPayload{
 		DownloadDir: downloadDir,
+		// Always add as paused initially for consistent behavior
+		// The service layer will start it if autoStart is requested
+		Paused: func() *bool { p := true; return &p }(),
 	}
 
 	// Check if it's a magnet link or base64 torrent data
 	if strings.HasPrefix(torrentData, "magnet:") {
+		log.Printf("AddTorrent: Adding magnet link (length: %d)", len(torrentData))
 		payload.Filename = &torrentData
 	} else {
 		// Assume it's base64 encoded torrent file data
+		log.Printf("AddTorrent: Adding torrent file as base64 (length: %d)", len(torrentData))
+		
+		// Validate base64 format
+		if _, err := base64.StdEncoding.DecodeString(torrentData); err != nil {
+			log.Printf("AddTorrent: Invalid base64 data: %v", err)
+			return nil, fmt.Errorf("invalid base64 torrent data: %w", err)
+		}
+		
 		payload.MetaInfo = &torrentData
+		log.Printf("AddTorrent: MetaInfo set with base64 data")
 	}
+
+	log.Printf("AddTorrent: Calling TorrentAdd with payload: DownloadDir=%v, HasFilename=%t, HasMetaInfo=%t, Paused=%t", 
+		downloadDir, payload.Filename != nil, payload.MetaInfo != nil, payload.Paused != nil && *payload.Paused)
 
 	// Add the torrent
 	t, err := c.client.TorrentAdd(ctx, payload)
 	if err != nil {
-		return nil, fmt.Errorf("failed to add torrent: %w", err)
+		log.Printf("AddTorrent: TorrentAdd failed: %v", err)
+		// Categorize the error for better debugging
+		errMsg := err.Error()
+		if strings.Contains(errMsg, "connection refused") || strings.Contains(errMsg, "connect") {
+			return nil, fmt.Errorf("failed to connect to transmission daemon: %w", err)
+		}
+		if strings.Contains(errMsg, "unauthorized") || strings.Contains(errMsg, "403") || strings.Contains(errMsg, "401") {
+			return nil, fmt.Errorf("authentication failed with transmission daemon: %w", err)
+		}
+		if strings.Contains(errMsg, "invalid") || strings.Contains(errMsg, "malformed") {
+			return nil, fmt.Errorf("invalid torrent data: %w", err)
+		}
+		return nil, fmt.Errorf("transmission RPC error: %w", err)
+	}
+
+	log.Printf("AddTorrent: TorrentAdd succeeded, processing response...")
+	if t.ID == nil {
+		log.Printf("AddTorrent: WARNING - TorrentAdd returned response with nil ID")
+		return nil, fmt.Errorf("transmission returned torrent data with nil ID")
 	}
 
 	// Safely map fields that may be nil in the add response
@@ -249,14 +284,25 @@ func (c *Client) AddTorrent(ctx context.Context, torrentData string, downloadDir
 		ulEver   int64
 		addedAt  time.Time
 	)
+	
+	log.Printf("AddTorrent: Processing response fields...")
 	if t.ID != nil {
 		id = int64(*t.ID)
+		log.Printf("AddTorrent: Got ID: %d", id)
+	} else {
+		log.Printf("AddTorrent: WARNING - ID is nil")
 	}
 	if t.Name != nil {
 		name = *t.Name
+		log.Printf("AddTorrent: Got Name: %s", name)
+	} else {
+		log.Printf("AddTorrent: WARNING - Name is nil")
 	}
 	if t.HashString != nil {
 		hash = *t.HashString
+		log.Printf("AddTorrent: Got HashString: %s", hash)
+	} else {
+		log.Printf("AddTorrent: WARNING - HashString is nil")
 	}
 	if t.Status != nil {
 		status = mapTransmissionStatus(*t.Status)
@@ -307,27 +353,42 @@ func (c *Client) AddTorrent(ctx context.Context, torrentData string, downloadDir
 		AddedDate:      addedAt,
 	}
 
+	log.Printf("AddTorrent: Created TorrentData - ID:%d, Name:%s, Status:%s", result.ID, result.Name, result.Status)
+
 	if t.DoneDate != nil && !t.DoneDate.IsZero() {
 		result.DoneDate = t.DoneDate
 	}
 
 	if t.Error != nil && *t.Error != 0 {
 		result.Error = fmt.Sprintf("Error code: %d", *t.Error)
+		log.Printf("AddTorrent: Got Error code: %d", *t.Error)
 	}
 
 	if t.ErrorString != nil && *t.ErrorString != "" {
 		result.ErrorString = *t.ErrorString
+		log.Printf("AddTorrent: Got ErrorString: %s", result.ErrorString)
+		// If there's an error string, this indicates the torrent addition failed
+		return nil, fmt.Errorf("transmission error: %s", result.ErrorString)
 	}
 
+	// Additional validation - if we have an error code, that's also a failure
+	if t.Error != nil && *t.Error != 0 {
+		return nil, fmt.Errorf("transmission error code: %d", *t.Error)
+	}
+
+	log.Printf("AddTorrent: Returning successful result - ID:%d", result.ID)
 	return result, nil
 }
 
 // StartTorrents starts the specified torrents
 func (c *Client) StartTorrents(ctx context.Context, ids []int64) error {
+	log.Printf("StartTorrents: Starting torrents with IDs: %v", ids)
 	err := c.client.TorrentStartIDs(ctx, ids)
 	if err != nil {
+		log.Printf("StartTorrents: Failed to start torrents: %v", err)
 		return fmt.Errorf("failed to start torrents: %w", err)
 	}
+	log.Printf("StartTorrents: Successfully started torrents: %v", ids)
 	return nil
 }
 

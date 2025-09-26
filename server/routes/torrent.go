@@ -2,6 +2,7 @@ package routes
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/pocketbase/pocketbase/core"
 
@@ -46,20 +47,29 @@ func (tr *TorrentRoutes) handleSync(re *core.RequestEvent) error {
 
 // handleAddTorrent handles add torrent requests
 func (tr *TorrentRoutes) handleAddTorrent(re *core.RequestEvent) error {
+	log.Printf("handleAddTorrent: Received request")
+	
 	// Parse request body
 	var request torrent.AddTorrentRequest
 
 	if err := re.BindBody(&request); err != nil {
+		log.Printf("handleAddTorrent: ERROR - Failed to bind request body: %v", err)
 		return re.JSON(400, map[string]string{"error": "Invalid request body"})
 	}
+	
+	log.Printf("handleAddTorrent: Request parsed - torrent data length: %d, downloadDir: %v, autoStart: %v", 
+		len(request.Torrent), request.DownloadDir, request.AutoStart)
 
 	// Add torrent using service
 	ctx := re.Request.Context()
+	log.Printf("handleAddTorrent: Calling service.AddTorrent")
 	torrentData, err := tr.service.AddTorrent(ctx, request)
 	if err != nil {
+		log.Printf("handleAddTorrent: ERROR from service.AddTorrent: %v", err)
 		return re.JSON(400, map[string]string{"error": err.Error()})
 	}
 
+	log.Printf("handleAddTorrent: SUCCESS - torrent added with ID: %d, Name: %s", torrentData.ID, torrentData.Name)
 	return re.JSON(200, map[string]interface{}{
 		"success":         true,
 		"transmission_id": torrentData.ID,
