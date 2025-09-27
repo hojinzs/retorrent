@@ -289,7 +289,7 @@ export function TorrentItem({
         <div className="flex-1 cursor-pointer">
           {content}
         </div>
-        <div className="flex flex-row h-full items-center justify-center w-44 shrink-0 flex-col gap-2">
+        <div className="flex h-full items-center justify-center w-44 shrink-0 flex-col gap-2">
           {actionButtons}
         </div>
       </div>
