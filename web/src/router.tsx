@@ -188,7 +188,7 @@ export function AppRouterProvider() {
   // Show error if admin check failed
   if (adminExists.error) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-100 dark:bg-gray-950">
+      <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
           <h2 className="text-xl font-bold text-red-600 mb-2">Error</h2>
           <p className="text-gray-600 dark:text-gray-400 mb-4">{adminExists.error}</p>
