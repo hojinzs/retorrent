@@ -4,6 +4,7 @@ import { Button } from "@shared/components/ui/button";
 import { Pause, Play, Trash2 } from "lucide-react";
 import { useIsMobile } from "@shared/hooks/use-mobile";
 import { Checkbox } from "@shared/components/ui/checkbox";
+import {Link} from "@tanstack/react-router";
 
 export interface TorrentData {
   id: string;
@@ -26,7 +27,7 @@ interface TorrentItemProps {
 }
 
 const ACTION_BUTTON_WIDTH = 88;
-const TOTAL_ACTION_WIDTH = ACTION_BUTTON_WIDTH * 3;
+const TOTAL_ACTION_WIDTH = ACTION_BUTTON_WIDTH * 2;
 const SELECTION_WIDTH = 72;
 
 type IconType = typeof Pause;
@@ -148,67 +149,51 @@ export function TorrentItem({
     {
       label,
       icon: Icon,
-      tone,
       disabled,
-    }: { label: string; icon: IconType; tone: 'default' | 'destructive'; disabled?: boolean },
+    }: { label: string; icon: IconType; disabled?: boolean },
     layout: 'mobile' | 'desktop',
   ) => {
-    if (layout === 'mobile') {
-      const toneClasses = tone === 'destructive'
-        ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
-        : 'bg-primary/90 text-primary-foreground hover:bg-primary';
 
-      return (
+    const toneClasses: Record<'pause'|'play'|'remove', string> = {
+      pause: "text-gray-600 dark:text-gray-200 *:stroke-gray-600 border border-gray-600/20 dark:border-gray-200/20",
+      play: "bg-green-300/10 text-green-600 *:stroke-green-600 hover:bg-green-200",
+      remove: "bg-red-300/10 text-red-600 *:stroke-red-600 hover:bg-red-200"
+    }
+
+    return (
+      <div className="flex w-30 items-center justify-center" key={`${layout}-${action}`} style={{ width: ACTION_BUTTON_WIDTH }}>
         <Button
-          key={`${layout}-${action}`}
           variant="ghost"
           disabled={disabled}
           onClick={(event) => {
             event.stopPropagation();
             handleAction(action);
           }}
-          className={`h-full rounded-none border-l border-border/40 px-0 first:border-l-0 ${toneClasses}`}
-          style={{ width: ACTION_BUTTON_WIDTH }}
+          className={`size-16 rounded-xl overflow-hidden aspect-square border-l border-border/40 px-0 ${toneClasses[action]}`}
         >
           <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-xs font-medium">
-            <Icon className="h-5 w-5" />
+            <Icon className="h-5 w-5 " />
             <span>{label}</span>
           </div>
         </Button>
-      );
-    }
-
-    return (
-      <Button
-        key={`${layout}-${action}`}
-        variant={tone === 'destructive' ? 'destructive' : 'secondary'}
-        disabled={disabled}
-        onClick={() => handleAction(action)}
-        className="flex w-full items-center justify-start gap-2"
-      >
-        <Icon className="h-4 w-4" />
-        <span className="text-sm font-medium">{label}</span>
-      </Button>
+      </div>
     );
   };
 
   const actionButtons = [
-    renderActionButton('pause', {
-      label: 'Pause',
-      icon: Pause,
-      tone: 'default',
-      disabled: !canPause,
-    }, isMobile ? 'mobile' : 'desktop'),
-    renderActionButton('play', {
+    canPause ? renderActionButton('pause', {
+        label: 'Pause',
+        icon: Pause,
+        disabled: !canPause,
+      }, isMobile ? 'mobile' : 'desktop') : undefined,
+    canResume ? renderActionButton('play', {
       label: 'Resume',
       icon: Play,
-      tone: 'default',
       disabled: !canResume,
-    }, isMobile ? 'mobile' : 'desktop'),
+    }, isMobile ? 'mobile' : 'desktop') : undefined,
     renderActionButton('remove', {
       label: 'Delete',
       icon: Trash2,
-      tone: 'destructive',
     }, isMobile ? 'mobile' : 'desktop'),
   ];
 
@@ -250,64 +235,62 @@ export function TorrentItem({
 
   if (isMobile) {
     return (
-      <div className="relative mb-3 last:mb-0">
-        {showSelectionCheckbox && (
-          <div
-            className="absolute inset-y-0 left-0 flex items-center justify-center"
-            style={{ width: SELECTION_WIDTH }}
-          >
-            <div className="flex h-full w-full items-center justify-center rounded-l-2xl bg-muted">
-              <Checkbox
-                checked={selected}
-                onCheckedChange={(value) => handleSelectionChange(!!value)}
-                className="h-6 w-6"
-                aria-label="Select torrent"
-              />
-            </div>
+      <div className="relative">
+        <div
+          className="absolute inset-y-0 left-0 flex items-center justify-center"
+          style={{ width: SELECTION_WIDTH }}
+        >
+          <div className="flex h-full w-full items-center justify-center rounded-l-2xl">
+            <Checkbox
+              checked={selected}
+              onCheckedChange={(value) => handleSelectionChange(!!value)}
+              className="h-6 w-6"
+              aria-label="Select torrent"
+            />
           </div>
-        )}
+        </div>
         <div
           className="absolute inset-y-0 right-0 flex overflow-hidden"
           style={{ width: TOTAL_ACTION_WIDTH }}
         >
           {actionButtons}
         </div>
-        <div
-          className="relative z-10 rounded-2xl border border-border/60 bg-card p-4 shadow-sm transition-transform duration-200 ease-out"
-          style={{ transform: `translateX(${translateX}px)` }}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          onTouchCancel={handleTouchEnd}
-          onClick={() => {
-            if (isOpen) {
-              closeActions();
-            }
-          }}
-        >
-          {content}
-        </div>
+        <Link to="." className="select-none">
+          <div
+            className="relative z-10 border border-border/30 bg-white/50 dark:bg-neutral-800/50 backdrop-blur-sm p-4 shadow-sm transition-transform duration-200 ease-out active:bg-white/75"
+            style={{ transform: `translateX(${translateX}px)` }}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            onTouchCancel={handleTouchEnd}
+            onClick={() => {
+              if (isOpen) {
+                closeActions();
+              }
+            }}
+          >
+            {content}
+          </div>
+        </Link>
       </div>
     );
   }
 
   return (
-    <div className="mb-3 last:mb-0 rounded-2xl border border-border/60 bg-card shadow-sm transition-colors hover:bg-card/80">
-      <div className="flex items-start gap-4 p-4">
-        {showSelectionCheckbox && (
-          <div className="pt-1">
-            <Checkbox
-              checked={selected}
-              onCheckedChange={(value) => handleSelectionChange(!!value)}
-              aria-label="Select torrent"
-            />
-          </div>
-        )}
-        <div className="flex w-44 shrink-0 flex-col gap-2">
-          {actionButtons}
+    <div className="border border-border/30 bg-white/50 dark:bg-neutral-800/50 backdrop-blur-sm shadow-sm transition-transform duration-200 ease-out active:bg-white/75">
+      <div className="flex items-center gap-4 p-4">
+        <div className="pt-1">
+          <Checkbox
+            checked={selected}
+            onCheckedChange={(value) => handleSelectionChange(!!value)}
+            aria-label="Select torrent"
+          />
         </div>
         <div className="flex-1 cursor-pointer">
           {content}
+        </div>
+        <div className="flex flex-row h-full items-center justify-center w-44 shrink-0 flex-col gap-2">
+          {actionButtons}
         </div>
       </div>
     </div>

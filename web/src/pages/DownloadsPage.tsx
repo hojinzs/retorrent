@@ -237,7 +237,7 @@ export function DownloadsPage() {
 
       {/* Selection Controls - Desktop or when in selection mode on mobile */}
       {filteredTorrents.length > 0 && (
-        <div className="px-8 py-4 border-b border-border">
+        <div className="px-4 py-4 border-b border-border">
           {isMobile && !isSelectionMode ? (
             <div className="flex items-center justify-between">
               <span className="caption text-muted-foreground">
@@ -307,7 +307,7 @@ export function DownloadsPage() {
             </div>
           </div>
         ) : (
-          <div className={`flex flex-col ${isMobile ? 'gap-3 px-4 pb-6' : 'gap-4 px-8 py-6'}`}>
+          <div className="flex flex-col">
             {filteredTorrents.map(torrent => (
               <TorrentItem
                 key={torrent.id}

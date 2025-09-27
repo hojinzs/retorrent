@@ -323,7 +323,7 @@ export function TorrentList({ isMobile }: TorrentListProps) {
             </div>
           </div>
         ) : (
-          <div className={`flex flex-col ${isMobile ? 'gap-3 px-4 pb-20' : 'gap-4 px-6'}`}>
+          <div className={`flex flex-col ${isMobile ? 'pb-20' : 'gap-4 px-6'}`}>
             {filteredTorrents.map(torrent => (
               <TorrentItem
                 key={torrent.id}

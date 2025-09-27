@@ -36,11 +36,11 @@ function AppLayout() {
   const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
 
   return (
-    <div className="h-screen w-full bg-background text-foreground flex overflow-hidden">
+    <div className="h-lvh w-full bg-background text-foreground flex overflow-hidden">
       {/* Mobile FAB Menu Button */}
       {isMobile && (
         <Button
-          className="fixed bottom-6 left-6 z-40 h-12 w-12 rounded-full shadow-lg bg-card/80 backdrop-blur-sm border border-border hover:bg-accent/50 transition-all"
+          className="fixed bottom-6 left-6 z-40 size-16 rounded-full shadow-lg bg-white/50 dark:bg-neutral-900/50 backdrop-blur-sm border border-border hover:bg-white/75 dark:hover:bg-neutral-700/50 transition-color duration-500"
           variant="ghost"
           size="sm"
           onClick={() => setSidebarOpen(true)}
@@ -49,29 +49,15 @@ function AppLayout() {
         </Button>
       )}
 
-      {/* Sidebar - Desktop */}
-      {!isMobile && (
-        <Sidebar
-          isDark={isDark}
-          onThemeToggle={handleThemeToggle}
-          activePath={pathname}
-          isMobile={isMobile}
-          isOpen={sidebarOpen}
-          onClose={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Mobile Sidebar */}
-      {isMobile && (
-        <Sidebar
-          isDark={isDark}
-          onThemeToggle={handleThemeToggle}
-          activePath={pathname}
-          isMobile={isMobile}
-          isOpen={sidebarOpen}
-          onClose={() => setSidebarOpen(false)}
-        />
-      )}
+      {/* Sidebar */}
+      <Sidebar
+        isDark={isDark}
+        onThemeToggle={handleThemeToggle}
+        activePath={pathname}
+        isMobile={isMobile}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">

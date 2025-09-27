@@ -12,35 +12,34 @@ interface SidebarProps {
 }
 
 const menuItems = [
-  { id: 'downloads', label: 'Downloads', icon: Download, path: '/downloads' },
-  { id: 'preferences', label: 'Preferences', icon: Settings, path: '/preferences' },
-  { id: 'users', label: 'Users', icon: Users, path: '/users' },
+  { id: 'downloads', label: 'Downloads', icon: Download, path: '/downloads', disabled: false },
+  { id: 'preferences', label: 'Preferences', icon: Settings, path: '/preferences', disabled: false },
+  { id: 'users', label: 'Users', icon: Users, path: '/users', disabled: true },
 ];
 
 export function Sidebar({ isDark, onThemeToggle, activePath, isMobile, isOpen, onClose }: SidebarProps) {
   const sidebarClasses = `
-    ${isMobile ? 'fixed inset-y-0 left-0 z-50 w-80 transform transition-transform duration-300 ease-in-out' : 'w-80'}
-    ${isMobile && !isOpen ? '-translate-x-full' : 'translate-x-0'}
-    h-screen ${isMobile ? 'p-4' : 'p-3'} flex flex-col
+    ${isMobile ? 'fixed inset-y-0 -left-80 z-50 w-80 transform transition-transform duration-300 ease-in-out' : 'w-80'}
+    ${isMobile && isOpen && 'translate-x-full'}
+    h-full ${isMobile ? 'p-4' : 'p-4 pr-0'} flex flex-col
   `;
 
-  const glassClasses = isMobile 
-    ? 'backdrop-blur-glass mobile-glass-panel' 
-    : 'backdrop-blur-glass glass-panel';
+  const glassClasses = "backdrop-blur-2xl bg-white/50 dark:bg-neutral-600/10 border border-neutral-200/50 dark:border-neutral-500/50"
+  const shadowClasses = "shadow-md dark:shadow-none"
 
   return (
     <>
       {isMobile && isOpen && (
         <div 
-          className="fixed inset-0 bg-black/60 z-40"
+          className="fixed inset-0 bg-white/50 dark:bg-black/50 z-40"
           onClick={onClose}
         />
       )}
       <div className={sidebarClasses}>
-        <div className={`h-full flex flex-col ${glassClasses} rounded-xl`}>
+        <div className={`h-full flex flex-col ${glassClasses} ${shadowClasses} rounded-xl`}>
           {/* User Profile Section - Now at top */}
           <div className="p-4 border-b border-border/20">
-            <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent/30 transition-colors cursor-pointer">
+            <div className="flex items-center gap-3 p-2 rounded-lg dark:hover:bg-black/10 transition-colors cursor-pointer">
               <div className="w-10 h-10 rounded-full bg-green-600/20 flex items-center justify-center">
                 <User className="h-5 w-5 text-green-600" />
               </div>
@@ -56,35 +55,18 @@ export function Sidebar({ isDark, onThemeToggle, activePath, isMobile, isOpen, o
             {menuItems.map((item) => {
               const Icon = item.icon;
               const isActive = activePath === item.path;
-              
-              if (item.id === 'users') {
-                // Users page not implemented yet, show as disabled
-                return (
-                  <Button
-                    key={item.id}
-                    variant="ghost"
-                    disabled
-                    className={`
-                      w-full justify-start h-11 px-4 rounded-lg transition-all opacity-50 cursor-not-allowed
-                      text-sidebar-foreground
-                    `}
-                  >
-                    <Icon className="mr-3 h-5 w-5" />
-                    <span className="caption">{item.label}</span>
-                  </Button>
-                );
-              }
-              
               return (
                 <Link key={item.id} to={item.path} onClick={isMobile ? onClose : undefined}>
                   <Button
                     variant="ghost"
                     className={`
-                      w-full justify-start h-11 px-4 rounded-lg transition-all
+                      w-full justify-start h-12 px-4 rounded-lg transition-all hover:bg-black/10 dark:hover:bg-black/10
                       ${isActive 
-                        ? 'bg-green-600 text-white hover:bg-green-700' 
-                        : 'hover:bg-accent/50 text-sidebar-foreground'
-                      }
+                        ? 'text-green-600 hover:text-green-600' 
+                        : 'text-sidebar-foreground'}
+                      ${item.disabled 
+                        ? 'cursor-not-allowed opacity-50'
+                        : ''}
                     `}
                   >
                     <Icon className="mr-3 h-5 w-5" />
