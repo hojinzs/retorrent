@@ -69,11 +69,11 @@ export function TorrentList({ isMobile }: TorrentListProps) {
   });
 
   const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedTorrents(filteredTorrents.map(t => t.id));
-    } else {
+    if (!checked) {
       setSelectedTorrents([]);
+      return;
     }
+    setSelectedTorrents(filteredTorrents.map(t => t.id));
   };
 
   const handleTorrentSelect = (id: string, checked: boolean) => {
@@ -266,15 +266,15 @@ export function TorrentList({ isMobile }: TorrentListProps) {
           ) : (
             // Desktop or Mobile selection mode: Show selection controls
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <Checkbox
-                  checked={selectedTorrents.length === filteredTorrents.length && filteredTorrents.length > 0}
-                  onCheckedChange={handleSelectAll}
-                />
-                <span className="caption">
-                  Select All ({selectedTorrents.length}/{filteredTorrents.length})
-                </span>
-              </div>
+            <div className="flex items-center gap-4">
+              <Checkbox
+                checked={filteredTorrents.length > 0 && selectedTorrents.length === filteredTorrents.length}
+                onCheckedChange={(value) => handleSelectAll(!!value)}
+              />
+              <span className="caption">
+                Select All ({selectedTorrents.length}/{filteredTorrents.length})
+              </span>
+            </div>
               <div className="flex items-center gap-2">
                 {selectedTorrents.length > 0 && (
                   <Button
@@ -325,26 +325,19 @@ export function TorrentList({ isMobile }: TorrentListProps) {
         ) : (
           <div className={`flex flex-col ${isMobile ? 'gap-3 px-4 pb-20' : 'gap-4 px-6'}`}>
             {filteredTorrents.map(torrent => (
-              <div key={torrent.id} className="flex items-start gap-3">
-                {(!isMobile || isSelectionMode) && (
-                  <div className="pt-2">
-                    <Checkbox
-                      checked={selectedTorrents.includes(torrent.id)}
-                      onCheckedChange={(checked) => handleTorrentSelect(torrent.id, !!checked)}
-                    />
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <TorrentItem
-                    torrent={torrent}
-                    onAction={(id, action) => {
-                      if (action === 'play') handleResume(id);
-                      else if (action === 'pause') handlePause(id);
-                      else if (action === 'remove') handleRemove(id);
-                    }}
-                  />
-                </div>
-              </div>
+              <TorrentItem
+                key={torrent.id}
+                torrent={torrent}
+                onAction={(id, action) => {
+                  if (action === 'play') handleResume(id);
+                  else if (action === 'pause') handlePause(id);
+                  else if (action === 'remove') handleRemove(id);
+                }}
+                showSelectionCheckbox={!isMobile || isSelectionMode}
+                selectionMode={isMobile && isSelectionMode}
+                selected={selectedTorrents.includes(torrent.id)}
+                onSelectChange={(checked) => handleTorrentSelect(torrent.id, checked)}
+              />
             ))}
           </div>
         )}

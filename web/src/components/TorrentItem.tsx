@@ -3,6 +3,7 @@ import { Progress } from "@shared/components/ui/progress";
 import { Button } from "@shared/components/ui/button";
 import { Pause, Play, Trash2 } from "lucide-react";
 import { useIsMobile } from "@shared/hooks/use-mobile";
+import { Checkbox } from "@shared/components/ui/checkbox";
 
 export interface TorrentData {
   id: string;
@@ -18,18 +19,35 @@ export interface TorrentData {
 interface TorrentItemProps {
   torrent: TorrentData;
   onAction: (id: string, action: 'play' | 'pause' | 'remove') => void;
+  showSelectionCheckbox?: boolean;
+  selectionMode?: boolean;
+  selected?: boolean;
+  onSelectChange?: (checked: boolean) => void;
 }
 
 const ACTION_BUTTON_WIDTH = 88;
 const TOTAL_ACTION_WIDTH = ACTION_BUTTON_WIDTH * 3;
+const SELECTION_WIDTH = 72;
 
 type IconType = typeof Pause;
 
-export function TorrentItem({ torrent, onAction }: TorrentItemProps) {
+export function TorrentItem({
+  torrent,
+  onAction,
+  showSelectionCheckbox = false,
+  selectionMode = false,
+  selected = false,
+  onSelectChange,
+}: TorrentItemProps) {
   const isMobile = useIsMobile();
   const [translateX, setTranslateX] = React.useState(0);
   const [isOpen, setIsOpen] = React.useState(false);
   const dragState = React.useRef<{ startX: number; startTranslate: number } | null>(null);
+
+  const selectionOffset = React.useMemo(() => {
+    if (!isMobile) return 0;
+    return selectionMode && showSelectionCheckbox ? SELECTION_WIDTH : 0;
+  }, [isMobile, selectionMode, showSelectionCheckbox]);
 
   React.useEffect(() => {
     if (!isMobile) {
@@ -38,6 +56,15 @@ export function TorrentItem({ torrent, onAction }: TorrentItemProps) {
       dragState.current = null;
     }
   }, [isMobile]);
+
+  React.useEffect(() => {
+    if (isMobile) {
+      setTranslateX(selectionOffset);
+      if (!selectionMode) {
+        setIsOpen(false);
+      }
+    }
+  }, [isMobile, selectionOffset, selectionMode]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -62,7 +89,7 @@ export function TorrentItem({ torrent, onAction }: TorrentItemProps) {
   const closeActions = () => {
     if (isMobile) {
       setIsOpen(false);
-      setTranslateX(0);
+      setTranslateX(selectionOffset);
       dragState.current = null;
     }
   };
@@ -75,7 +102,7 @@ export function TorrentItem({ torrent, onAction }: TorrentItemProps) {
 
     dragState.current = {
       startX: touchX,
-      startTranslate: isOpen ? -TOTAL_ACTION_WIDTH : 0,
+      startTranslate: translateX,
     };
   };
 
@@ -86,7 +113,9 @@ export function TorrentItem({ torrent, onAction }: TorrentItemProps) {
     if (touchX == null) return;
 
     const delta = touchX - dragState.current.startX;
-    const next = clamp(dragState.current.startTranslate + delta, -TOTAL_ACTION_WIDTH, 0);
+    const minTranslate = selectionOffset - TOTAL_ACTION_WIDTH;
+    const maxTranslate = selectionOffset;
+    const next = clamp(dragState.current.startTranslate + delta, minTranslate, maxTranslate);
 
     if (Math.abs(delta) > 8) {
       event.preventDefault();
@@ -98,15 +127,20 @@ export function TorrentItem({ torrent, onAction }: TorrentItemProps) {
   const handleTouchEnd = () => {
     if (!isMobile || !dragState.current) return;
 
-    const shouldOpen = translateX <= -TOTAL_ACTION_WIDTH * 0.5;
+    const openThreshold = selectionOffset - TOTAL_ACTION_WIDTH * 0.5;
+    const shouldOpen = translateX <= openThreshold;
     setIsOpen(shouldOpen);
-    setTranslateX(shouldOpen ? -TOTAL_ACTION_WIDTH : 0);
+    setTranslateX(shouldOpen ? selectionOffset - TOTAL_ACTION_WIDTH : selectionOffset);
     dragState.current = null;
   };
 
   const handleAction = (action: 'pause' | 'play' | 'remove') => {
     onAction(torrent.id, action);
     closeActions();
+  };
+
+  const handleSelectionChange = (checked: boolean) => {
+    onSelectChange?.(checked);
   };
 
   const renderActionButton = (
@@ -217,6 +251,21 @@ export function TorrentItem({ torrent, onAction }: TorrentItemProps) {
   if (isMobile) {
     return (
       <div className="relative mb-3 last:mb-0">
+        {showSelectionCheckbox && (
+          <div
+            className="absolute inset-y-0 left-0 flex items-center justify-center"
+            style={{ width: SELECTION_WIDTH }}
+          >
+            <div className="flex h-full w-full items-center justify-center rounded-l-2xl bg-muted">
+              <Checkbox
+                checked={selected}
+                onCheckedChange={(value) => handleSelectionChange(!!value)}
+                className="h-6 w-6"
+                aria-label="Select torrent"
+              />
+            </div>
+          </div>
+        )}
         <div
           className="absolute inset-y-0 right-0 flex overflow-hidden"
           style={{ width: TOTAL_ACTION_WIDTH }}
@@ -224,7 +273,7 @@ export function TorrentItem({ torrent, onAction }: TorrentItemProps) {
           {actionButtons}
         </div>
         <div
-          className="relative z-10 rounded-xl border border-border/50 bg-muted/30 p-4 transition-transform duration-200 ease-out"
+          className="relative z-10 rounded-2xl border border-border/60 bg-card p-4 shadow-sm transition-transform duration-200 ease-out"
           style={{ transform: `translateX(${translateX}px)` }}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
@@ -243,8 +292,17 @@ export function TorrentItem({ torrent, onAction }: TorrentItemProps) {
   }
 
   return (
-    <div className="mb-3 last:mb-0 rounded-xl border border-border/50 bg-muted/30 transition-colors hover:bg-muted/40">
+    <div className="mb-3 last:mb-0 rounded-2xl border border-border/60 bg-card shadow-sm transition-colors hover:bg-card/80">
       <div className="flex items-start gap-4 p-4">
+        {showSelectionCheckbox && (
+          <div className="pt-1">
+            <Checkbox
+              checked={selected}
+              onCheckedChange={(value) => handleSelectionChange(!!value)}
+              aria-label="Select torrent"
+            />
+          </div>
+        )}
         <div className="flex w-44 shrink-0 flex-col gap-2">
           {actionButtons}
         </div>

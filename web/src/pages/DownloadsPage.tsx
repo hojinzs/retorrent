@@ -81,13 +81,13 @@ export function DownloadsPage() {
     }
   }, [])
 
-  const handleSelectAll = useCallback(() => {
-    if (selectedTorrents.length === filteredTorrents.length) {
+  const handleSelectAll = useCallback((checked: boolean) => {
+    if (!checked) {
       setSelectedTorrents([])
     } else {
       setSelectedTorrents(filteredTorrents.map(t => t.id))
     }
-  }, [selectedTorrents.length, filteredTorrents])
+  }, [filteredTorrents])
 
   const handleRemoveSelected = useCallback(() => {
     if (selectedTorrents.length > 0) {
@@ -255,8 +255,8 @@ export function DownloadsPage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <Checkbox
-                  checked={selectedTorrents.length === filteredTorrents.length && filteredTorrents.length > 0}
-                  onCheckedChange={handleSelectAll}
+                  checked={filteredTorrents.length > 0 && selectedTorrents.length === filteredTorrents.length}
+                  onCheckedChange={(value) => handleSelectAll(!!value)}
                 />
                 <span className="caption">
                   Select All ({selectedTorrents.length}/{filteredTorrents.length})
@@ -309,22 +309,15 @@ export function DownloadsPage() {
         ) : (
           <div className={`flex flex-col ${isMobile ? 'gap-3 px-4 pb-6' : 'gap-4 px-8 py-6'}`}>
             {filteredTorrents.map(torrent => (
-              <div key={torrent.id} className="flex items-start gap-3">
-                {(!isMobile || isSelectionMode) && (
-                  <div className="pt-2">
-                    <Checkbox
-                      checked={selectedTorrents.includes(torrent.id)}
-                      onCheckedChange={(checked) => handleSelectTorrent(torrent.id, !!checked)}
-                    />
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <TorrentItem
-                    torrent={torrent}
-                    onAction={handleTorrentAction}
-                  />
-                </div>
-              </div>
+              <TorrentItem
+                key={torrent.id}
+                torrent={torrent}
+                onAction={handleTorrentAction}
+                showSelectionCheckbox={!isMobile || isSelectionMode}
+                selectionMode={isMobile && isSelectionMode}
+                selected={selectedTorrents.includes(torrent.id)}
+                onSelectChange={(checked) => handleSelectTorrent(torrent.id, checked)}
+              />
             ))}
           </div>
         )}
