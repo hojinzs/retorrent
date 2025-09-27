@@ -4,7 +4,7 @@ import { Button } from "@shared/components/ui/button";
 import { Pause, Play, Trash2 } from "lucide-react";
 import { useIsMobile } from "@shared/hooks/use-mobile";
 import { Checkbox } from "@shared/components/ui/checkbox";
-import {Link} from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 
 export interface TorrentData {
   id: string;
