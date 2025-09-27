@@ -44,7 +44,7 @@
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(0.96 0.005 255);
+  --background: var(--color-neutral-100);
   --foreground: oklch(0.129 0.042 264.695);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.129 0.042 264.695);
@@ -54,13 +54,13 @@
   --primary-foreground: oklch(0.984 0.003 247.858);
   --secondary: oklch(0.968 0.007 247.896);
   --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
+  --muted: var(--color-neutral-200);
+  --muted-foreground: var(--color-neutral-500);
   --accent: oklch(0.968 0.007 247.896);
   --accent-foreground: oklch(0.208 0.042 265.755);
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
+  --input: var(--color-neutral-200);
   --ring: oklch(0.704 0.04 256.788);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
@@ -78,9 +78,9 @@
 }
 
 .dark {
-  --background: oklch(0.08 0.02 255);
+  --background: var(--color-neutral-900);
   --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.12 0.03 260);
+  --card: var(--color-neutral-800);
   --card-foreground: oklch(0.984 0.003 247.858);
   --popover: oklch(0.12 0.03 260);
   --popover-foreground: oklch(0.984 0.003 247.858);
@@ -88,8 +88,8 @@
   --primary-foreground: oklch(0.12 0.03 260);
   --secondary: oklch(0.18 0.04 260);
   --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.18 0.04 260);
-  --muted-foreground: oklch(0.704 0.04 256.788);
+  --muted: var(--color-neutral-800);
+  --muted-foreground: var(--color-neutral-500);
   --accent: oklch(0.18 0.04 260);
   --accent-foreground: oklch(0.984 0.003 247.858);
   --destructive: oklch(0.704 0.191 22.216);
@@ -163,22 +163,12 @@ h3 {
   backdrop-filter: blur(20px) saturate(180%);
 }
 
-.glass-panel {
-  background: #ffffff40;
-  border: 1px solid #ffffff2e;
-}
+@layer utilities {
+    .glass-panel {
+        @apply bg-white/30 dark:bg-white/10 border border-white/50
+    }
 
-.dark .glass-panel {
-  background: #0f172abf;
-  border: 1px solid #ffffff1a;
-}
-
-.mobile-glass-panel {
-  background: #ffffff80;
-  border: 1px solid #ffffff40;
-}
-
-.dark .mobile-glass-panel {
-  background: #0f172ae6;
-  border: 1px solid #ffffff26;
+    .mobile-glass-panel {
+        @apply bg-white/30 dark:bg-white/10 border border-white/50
+    }
 }

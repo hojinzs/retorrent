@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
 type ThemeProviderProps = {
   children: React.ReactNode;
@@ -6,9 +6,11 @@ type ThemeProviderProps = {
   storageKey?: string;
 };
 
+type Theme = 'dark' | 'light' | 'system';
+
 type ThemeProviderState = {
-  theme: 'dark' | 'light' | 'system';
-  setTheme: (theme: 'dark' | 'light' | 'system') => void;
+  theme: Theme;
+  setTheme: (theme: Theme) => void;
 };
 
 const initialState: ThemeProviderState = {
@@ -18,40 +20,69 @@ const initialState: ThemeProviderState = {
 
 const ThemeProviderContext = createContext<ThemeProviderState>(initialState);
 
+function applyMetaThemeColor() {
+  const doc = window.document;
+  const root = doc.documentElement;
+  // Read current background color from CSS variable which changes with .light/.dark
+  const bg = getComputedStyle(root).getPropertyValue('--background').trim();
+  if (!bg) return;
+  let meta = doc.querySelector('meta[name="theme-color"]') as HTMLMetaElement | null;
+  if (!meta) {
+    meta = doc.createElement('meta');
+    meta.setAttribute('name', 'theme-color');
+    doc.head.appendChild(meta);
+  }
+  meta.setAttribute('content', bg);
+}
+
 export function ThemeProvider({
   children,
   defaultTheme = 'system',
   storageKey = 'ui-theme',
   ...props
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<'dark' | 'light' | 'system'>(
-    () => (localStorage.getItem(storageKey) as 'dark' | 'light' | 'system') || defaultTheme
+  const [theme, setTheme] = useState<Theme>(
+    () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
   );
 
   useEffect(() => {
     const root = window.document.documentElement;
+    const mql = window.matchMedia('(prefers-color-scheme: dark)');
 
-    root.classList.remove('light', 'dark');
+    const setClassAndMeta = (t: Exclude<Theme, 'system'>) => {
+      root.classList.remove('light', 'dark');
+      root.classList.add(t);
+      // Update theme-color based on the applied class and CSS variable
+      applyMetaThemeColor();
+    };
 
     if (theme === 'system') {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches
-        ? 'dark'
-        : 'light';
+      const effective: Exclude<Theme, 'system'> = mql.matches ? 'dark' : 'light';
+      setClassAndMeta(effective);
 
-      root.classList.add(systemTheme);
-      return;
+      const handleChange = (e: MediaQueryListEvent) => {
+        setClassAndMeta(e.matches ? 'dark' : 'light');
+      };
+      // Listen for system theme changes while in system mode
+      mql.addEventListener?.('change', handleChange);
+      return () => {
+        mql.removeEventListener?.('change', handleChange);
+      };
+    } else {
+      setClassAndMeta(theme);
     }
-
-    root.classList.add(theme);
   }, [theme]);
 
-  const value = {
-    theme,
-    setTheme: (theme: 'dark' | 'light' | 'system') => {
-      localStorage.setItem(storageKey, theme);
-      setTheme(theme);
-    },
-  };
+  const value = useMemo(
+    () => ({
+      theme,
+      setTheme: (next: Theme) => {
+        localStorage.setItem(storageKey, next);
+        setTheme(next);
+      },
+    }),
+    [theme, storageKey]
+  );
 
   return (
     <ThemeProviderContext.Provider {...props} value={value}>
