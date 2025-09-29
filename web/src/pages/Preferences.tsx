@@ -167,17 +167,6 @@ export default function Preferences() {
                     />
                     <Label htmlFor="append-part">Append ".part" to incomplete files' names</Label>
                   </div>
-
-                  <div className="flex items-center gap-4">
-                    <Label htmlFor="queue-size">Download queue size:</Label>
-                    <Input
-                      id="queue-size"
-                      value={queueSize}
-                      onChange={(e) => setQueueSize(e.target.value)}
-                      className="w-20 bg-input border-border"
-                      type="number"
-                    />
-                  </div>
                 </div>
               </div>
 
@@ -199,45 +188,35 @@ export default function Preferences() {
                       className="w-24 bg-input border-border"
                       type="number"
                       step="0.1"
-                      disabled={!stopRatioEnabled}
+                      disabled={!formData.seedRatioLimited}
                     />
                   </div>
 
                   <div className="flex items-center gap-4">
                     <Checkbox
                       id="stop-idle"
-                      checked={stopIdleEnabled}
-                      onCheckedChange={(checked) => setStopIdleEnabled(!!checked)}
+                      checked={!!formData['idle-seeding-limit-enabled']}
+                      onCheckedChange={(checked) => updateFormValue('idle-seeding-limit-enabled', !!checked)}
                     />
-                    <Label htmlFor="stop-idle">Stop seeding if idle for N mins:</Label>
+                    <Label htmlFor="stop-idle">Stop seeding if idle for (minutes):</Label>
                     <Input
-                      value={stopIdle}
-                      onChange={(e) => setStopIdle(e.target.value)}
+                      value={formData['idle-seeding-limit']?.toString() || ''}
+                      onChange={(e) => updateFormValue('idle-seeding-limit', parseInt(e.target.value) || 0)}
                       className="w-24 bg-input border-border"
                       type="number"
-                      disabled={!stopIdleEnabled}
+                      disabled={!formData['idle-seeding-limit-enabled']}
                     />
                   </div>
                 </div>
               </div>
-
-              <Separator />
-
-              <div>
-                <h3 className="mb-4">Magnet Protocol Handler</h3>
-                <Button variant="outline" className="w-full bg-muted/50 border-border">
-                  Add Browser Handler
-                </Button>
-              </div>
             </div>
 
-            {/* Action Buttons */}
             <div className="flex justify-end gap-3 pt-6 border-t border-border">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleReset}
-                disabled={!hasChanges()}
+                disabled={!hasChanges}
                 className="border-border text-foreground hover:bg-accent/50 disabled:opacity-50"
               >
                 <RotateCcw className="mr-2 h-4 w-4" />
@@ -246,11 +225,11 @@ export default function Preferences() {
               <Button
                 size="sm"
                 onClick={handleSave}
-                disabled={!hasChanges()}
+                disabled={!hasChanges || updatePreferencesMutation.isPending}
                 className="bg-primary hover:bg-primary/90 disabled:opacity-50"
               >
                 <Save className="mr-2 h-4 w-4" />
-                Save Changes
+                {updatePreferencesMutation.isPending ? 'Saving...' : 'Save Changes'}
               </Button>
             </div>
           </TabsContent>
@@ -263,15 +242,15 @@ export default function Preferences() {
                   <div className="flex items-center gap-4">
                     <Checkbox
                       id="upload-limit"
-                      checked={uploadLimitEnabled}
-                      onCheckedChange={(checked) => setUploadLimitEnabled(!!checked)}
+                      checked={!!formData['speed-limit-up-enabled']}
+                      onCheckedChange={(checked) => updateFormValue('speed-limit-up-enabled', !!checked)}
                     />
                     <Label htmlFor="upload-limit">Upload (kB/s):</Label>
                     <Input
-                      value={uploadLimit}
-                      onChange={(e) => setUploadLimit(e.target.value)}
+                      value={formData['speed-limit-up']?.toString() || ''}
+                      onChange={(e) => updateFormValue('speed-limit-up', parseInt(e.target.value) || 0)}
                       className="w-32 bg-input border-border"
-                      disabled={!uploadLimitEnabled}
+                      disabled={!formData['speed-limit-up-enabled']}
                       type="number"
                     />
                   </div>
@@ -279,15 +258,15 @@ export default function Preferences() {
                   <div className="flex items-center gap-4">
                     <Checkbox
                       id="download-limit"
-                      checked={downloadLimitEnabled}
-                      onCheckedChange={(checked) => setDownloadLimitEnabled(!!checked)}
+                      checked={!!formData['speed-limit-down-enabled']}
+                      onCheckedChange={(checked) => updateFormValue('speed-limit-down-enabled', !!checked)}
                     />
                     <Label htmlFor="download-limit">Download (kB/s):</Label>
                     <Input
-                      value={downloadLimit}
-                      onChange={(e) => setDownloadLimit(e.target.value)}
+                      value={formData['speed-limit-down']?.toString() || ''}
+                      onChange={(e) => updateFormValue('speed-limit-down', parseInt(e.target.value) || 0)}
                       className="w-32 bg-input border-border"
-                      disabled={!downloadLimitEnabled}
+                      disabled={!formData['speed-limit-down-enabled']}
                       type="number"
                     />
                   </div>
@@ -297,98 +276,37 @@ export default function Preferences() {
               <Separator />
 
               <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <h3>Alternative Speed Limits</h3>
-                </div>
-                <p className="caption text-muted-foreground mb-4">
-                  Override normal speed limits manually or at scheduled times
-                </p>
+                <h3 className="mb-4">Alternative Speed Limits</h3>
                 <div className="space-y-4">
                   <div className="flex items-center gap-4">
-                    <Label className="w-32">Upload (kB/s):</Label>
+                    <Label>Upload (kB/s):</Label>
                     <Input
-                      value={altUploadLimit}
-                      onChange={(e) => setAltUploadLimit(e.target.value)}
+                      value={formData['alt-speed-up']?.toString() || ''}
+                      onChange={(e) => updateFormValue('alt-speed-up', parseInt(e.target.value) || 0)}
                       className="w-32 bg-input border-border"
                       type="number"
                     />
                   </div>
 
                   <div className="flex items-center gap-4">
-                    <Label className="w-32">Download (kB/s):</Label>
+                    <Label>Download (kB/s):</Label>
                     <Input
-                      value={altDownloadLimit}
-                      onChange={(e) => setAltDownloadLimit(e.target.value)}
+                      value={formData['alt-speed-down']?.toString() || ''}
+                      onChange={(e) => updateFormValue('alt-speed-down', parseInt(e.target.value) || 0)}
                       className="w-32 bg-input border-border"
                       type="number"
                     />
                   </div>
-
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="scheduled"
-                      checked={scheduledEnabled}
-                      onCheckedChange={(checked) => setScheduledEnabled(!!checked)}
-                    />
-                    <Label htmlFor="scheduled">Scheduled times</Label>
-                  </div>
-
-                  {scheduledEnabled && (
-                    <div className="ml-6 space-y-3">
-                      <div className="flex items-center gap-4">
-                        <Label className="w-16">From:</Label>
-                        <Select value={scheduleFrom} onValueChange={setScheduleFrom}>
-                          <SelectTrigger className="w-32">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="9:00">9:00</SelectItem>
-                            <SelectItem value="10:00">10:00</SelectItem>
-                            <SelectItem value="11:00">11:00</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="flex items-center gap-4">
-                        <Label className="w-16">To:</Label>
-                        <Select value={scheduleTo} onValueChange={setScheduleTo}>
-                          <SelectTrigger className="w-32">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="17:00">17:00</SelectItem>
-                            <SelectItem value="18:00">18:00</SelectItem>
-                            <SelectItem value="19:00">19:00</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="flex items-center gap-4">
-                        <Label className="w-16">On days:</Label>
-                        <Select value={scheduleDays} onValueChange={setScheduleDays}>
-                          <SelectTrigger className="w-40">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="everyday">Everyday</SelectItem>
-                            <SelectItem value="weekdays">Weekdays</SelectItem>
-                            <SelectItem value="weekends">Weekends</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
 
-            {/* Action Buttons */}
             <div className="flex justify-end gap-3 pt-6 border-t border-border">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleReset}
-                disabled={!hasChanges()}
+                disabled={!hasChanges}
                 className="border-border text-foreground hover:bg-accent/50 disabled:opacity-50"
               >
                 <RotateCcw className="mr-2 h-4 w-4" />
@@ -397,11 +315,11 @@ export default function Preferences() {
               <Button
                 size="sm"
                 onClick={handleSave}
-                disabled={!hasChanges()}
+                disabled={!hasChanges || updatePreferencesMutation.isPending}
                 className="bg-primary hover:bg-primary/90 disabled:opacity-50"
               >
                 <Save className="mr-2 h-4 w-4" />
-                Save Changes
+                {updatePreferencesMutation.isPending ? 'Saving...' : 'Save Changes'}
               </Button>
             </div>
           </TabsContent>
@@ -414,8 +332,8 @@ export default function Preferences() {
                   <div className="flex items-center gap-4">
                     <Label className="w-48">Max peers per torrent:</Label>
                     <Input
-                      value={maxPeersPerTorrent}
-                      onChange={(e) => setMaxPeersPerTorrent(e.target.value)}
+                      value={formData['peer-limit-per-torrent']?.toString() || ''}
+                      onChange={(e) => updateFormValue('peer-limit-per-torrent', parseInt(e.target.value) || 0)}
                       className="w-24 bg-input border-border"
                       type="number"
                     />
@@ -424,8 +342,8 @@ export default function Preferences() {
                   <div className="flex items-center gap-4">
                     <Label className="w-48">Max peers overall:</Label>
                     <Input
-                      value={maxPeersOverall}
-                      onChange={(e) => setMaxPeersOverall(e.target.value)}
+                      value={formData['peer-limit-global']?.toString() || ''}
+                      onChange={(e) => updateFormValue('peer-limit-global', parseInt(e.target.value) || 0)}
                       className="w-24 bg-input border-border"
                       type="number"
                     />
@@ -440,90 +358,57 @@ export default function Preferences() {
                 <div className="space-y-4">
                   <div className="flex items-center gap-4">
                     <Label className="w-48">Encryption mode:</Label>
-                    <Select value={encryptionMode} onValueChange={setEncryptionMode}>
-                      <SelectTrigger className="w-48">
+                    <Select 
+                      value={formData.encryption || 'prefer'} 
+                      onValueChange={(value) => updateFormValue('encryption', value)}
+                    >
+                      <SelectTrigger className="w-40 bg-input border-border">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="prefer">Prefer encryption</SelectItem>
-                        <SelectItem value="require">Require encryption</SelectItem>
-                        <SelectItem value="tolerate">Tolerate encryption</SelectItem>
+                        <SelectItem value="required">Required</SelectItem>
+                        <SelectItem value="prefer">Prefer</SelectItem>
+                        <SelectItem value="tolerated">Tolerated</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
                   <div className="flex items-center space-x-2">
                     <Checkbox
-                      id="use-pex"
-                      checked={usePEX}
-                      onCheckedChange={(checked) => setUsePEX(!!checked)}
+                      id="enable-pex"
+                      checked={!!formData['pex-enabled']}
+                      onCheckedChange={(checked) => updateFormValue('pex-enabled', !!checked)}
                     />
-                    <Label htmlFor="use-pex">Use PEX to find more peers</Label>
+                    <Label htmlFor="enable-pex">Enable PEX</Label>
                   </div>
 
                   <div className="flex items-center space-x-2">
                     <Checkbox
-                      id="use-dht"
-                      checked={useDHT}
-                      onCheckedChange={(checked) => setUseDHT(!!checked)}
+                      id="enable-dht"
+                      checked={!!formData['dht-enabled']}
+                      onCheckedChange={(checked) => updateFormValue('dht-enabled', !!checked)}
                     />
-                    <Label htmlFor="use-dht">Use DHT to find more peers</Label>
+                    <Label htmlFor="enable-dht">Enable DHT</Label>
                   </div>
 
                   <div className="flex items-center space-x-2">
                     <Checkbox
-                      id="use-lpd"
-                      checked={useLPD}
-                      onCheckedChange={(checked) => setUseLPD(!!checked)}
+                      id="enable-lpd"
+                      checked={!!formData['lpd-enabled']}
+                      onCheckedChange={(checked) => updateFormValue('lpd-enabled', !!checked)}
                     />
-                    <Label htmlFor="use-lpd">Use LPD to find more peers</Label>
+                    <Label htmlFor="enable-lpd">Enable LPD</Label>
                   </div>
-                </div>
-              </div>
-
-              <Separator />
-
-              <div>
-                <h3 className="mb-4">Blocklist</h3>
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="blocklist-enabled"
-                      checked={blocklistEnabled}
-                      onCheckedChange={(checked) => setBlocklistEnabled(!!checked)}
-                    />
-                    <Label htmlFor="blocklist-enabled">Enable blocklist:</Label>
-                  </div>
-
-                  {blocklistEnabled && (
-                    <div className="ml-6 space-y-3">
-                      <Input
-                        value={blocklistUrl}
-                        onChange={(e) => setBlocklistUrl(e.target.value)}
-                        className="bg-input border-border"
-                        placeholder="Blocklist URL"
-                      />
-                      <div className="flex items-center justify-between">
-                        <span className="caption text-muted-foreground">
-                          Blocklist has 0 rules
-                        </span>
-                        <Button variant="outline" size="sm" className="border-border">
-                          Update
-                        </Button>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
 
-            {/* Action Buttons */}
             <div className="flex justify-end gap-3 pt-6 border-t border-border">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleReset}
-                disabled={!hasChanges()}
+                disabled={!hasChanges}
                 className="border-border text-foreground hover:bg-accent/50 disabled:opacity-50"
               >
                 <RotateCcw className="mr-2 h-4 w-4" />
@@ -532,11 +417,11 @@ export default function Preferences() {
               <Button
                 size="sm"
                 onClick={handleSave}
-                disabled={!hasChanges()}
+                disabled={!hasChanges || updatePreferencesMutation.isPending}
                 className="bg-primary hover:bg-primary/90 disabled:opacity-50"
               >
                 <Save className="mr-2 h-4 w-4" />
-                Save Changes
+                {updatePreferencesMutation.isPending ? 'Saving...' : 'Save Changes'}
               </Button>
             </div>
           </TabsContent>
@@ -547,62 +432,42 @@ export default function Preferences() {
                 <h3 className="mb-4">Listening Port</h3>
                 <div className="space-y-4">
                   <div className="flex items-center gap-4">
-                    <Label className="w-32">Port:</Label>
+                    <Label>Port for incoming connections:</Label>
                     <Input
-                      value={port}
-                      onChange={(e) => setPort(e.target.value)}
+                      value={formData['peer-port']?.toString() || ''}
+                      onChange={(e) => updateFormValue('peer-port', parseInt(e.target.value) || 0)}
                       className="w-24 bg-input border-border"
                       type="number"
                     />
-                    <Button variant="outline" size="sm" className="border-border">
-                      Test Port
-                    </Button>
                   </div>
 
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="random-port"
-                      checked={randomPort}
-                      onCheckedChange={(checked) => setRandomPort(!!checked)}
+                      checked={!!formData['peer-port-random-on-start']}
+                      onCheckedChange={(checked) => updateFormValue('peer-port-random-on-start', !!checked)}
                     />
-                    <Label htmlFor="random-port">Use random port on start</Label>
+                    <Label htmlFor="random-port">Randomize port on launch</Label>
                   </div>
 
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="port-forwarding"
-                      checked={portForwardingEnabled}
-                      onCheckedChange={(checked) => setPortForwardingEnabled(!!checked)}
+                      checked={!!formData['port-forwarding-enabled']}
+                      onCheckedChange={(checked) => updateFormValue('port-forwarding-enabled', !!checked)}
                     />
-                    <Label htmlFor="port-forwarding">Enable port forwarding (UPnP)</Label>
-                  </div>
-                </div>
-              </div>
-
-              <Separator />
-
-              <div>
-                <h3 className="mb-4">Bandwidth</h3>
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="priority-high-enabled"
-                      checked={limitBandwidthPriority}
-                      onCheckedChange={(checked) => setLimitBandwidthPriority(!!checked)}
-                    />
-                    <Label htmlFor="priority-high-enabled">Limit bandwidth priority when seeding</Label>
+                    <Label htmlFor="port-forwarding">Use port forwarding from my router</Label>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Action Buttons */}
             <div className="flex justify-end gap-3 pt-6 border-t border-border">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleReset}
-                disabled={!hasChanges()}
+                disabled={!hasChanges}
                 className="border-border text-foreground hover:bg-accent/50 disabled:opacity-50"
               >
                 <RotateCcw className="mr-2 h-4 w-4" />
@@ -611,16 +476,16 @@ export default function Preferences() {
               <Button
                 size="sm"
                 onClick={handleSave}
-                disabled={!hasChanges()}
+                disabled={!hasChanges || updatePreferencesMutation.isPending}
                 className="bg-primary hover:bg-primary/90 disabled:opacity-50"
               >
                 <Save className="mr-2 h-4 w-4" />
-                Save Changes
+                {updatePreferencesMutation.isPending ? 'Saving...' : 'Save Changes'}
               </Button>
             </div>
           </TabsContent>
         </Tabs>
       </div>
     </div>
-  )
+  );
 }
