@@ -8,9 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@shared/components/ui/separator";
 import { FolderOpen, Save, RotateCcw } from "lucide-react";
 import { useIsMobile } from "@shared/hooks/use-mobile";
+import { UserPreferencesTab } from "@/components/UserPreferencesTab";
 
 export default function Preferences() {
-  const [activeTab, setActiveTab] = useState('torrents');
+  const [activeTab, setActiveTab] = useState('ui');
   const isMobile = useIsMobile();
 
   // Initial values for comparison
@@ -166,7 +167,10 @@ export default function Preferences() {
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className={isMobile ? 'flex-1' : 'flex-shrink-0'}>
-            <TabsList className={`${isMobile ? 'grid w-full grid-cols-4 h-12' : 'flex w-auto h-10'}`}>
+            <TabsList className={`${isMobile ? 'grid w-full grid-cols-5 h-12' : 'flex w-auto h-10'}`}>
+              <TabsTrigger value="ui" className={isMobile ? 'py-3 px-2' : 'px-4'}>
+                UI
+              </TabsTrigger>
               <TabsTrigger value="torrents" className={isMobile ? 'py-3 px-2' : 'px-4'}>
                 Torrents
               </TabsTrigger>
@@ -187,6 +191,10 @@ export default function Preferences() {
       {/* Content */}
       <div className={`flex-1 ${isMobile ? 'p-4' : 'p-6'} ${isMobile ? 'pb-6' : 'overflow-auto'}`}>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsContent value="ui" className="space-y-6 mt-0">
+            <UserPreferencesTab />
+          </TabsContent>
+
           <TabsContent value="torrents" className="space-y-6 mt-0">
             <div className="space-y-6">
               <div>
