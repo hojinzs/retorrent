@@ -198,19 +198,19 @@ export function TorrentItem({
   ];
 
   const content = (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <div className="flex items-center justify-between gap-4">
         <div className="min-w-0 flex-1">
           <h3 className="truncate text-sm font-medium text-foreground">{torrent.name}</h3>
         </div>
-        <div className="flex shrink-0 items-center gap-4 text-sm">
+        <div className="flex shrink-0 items-center gap-3 text-sm">
           <span className={`${getStatusColor(torrent.status)} font-medium`}>
             {torrent.status.charAt(0).toUpperCase() + torrent.status.slice(1)}
           </span>
           <span className="font-medium text-muted-foreground">{torrent.size}</span>
         </div>
       </div>
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         <div className="flex-1">
           <Progress
             value={torrent.progress}
@@ -220,10 +220,10 @@ export function TorrentItem({
             } as React.CSSProperties}
           />
         </div>
-        <span className="w-12 text-right text-sm font-medium text-muted-foreground">{torrent.progress}%</span>
+        <span className="w-10 text-right text-xs font-medium text-muted-foreground">{torrent.progress}%</span>
       </div>
       <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <span>↓ {torrent.downloadSpeed}</span>
           <span>↑ {torrent.uploadSpeed}</span>
           <span>Ratio: 0.0</span>
@@ -257,7 +257,7 @@ export function TorrentItem({
         </div>
         <Link to="." className="select-none">
           <div
-            className="relative z-10 border border-border/30 bg-white/50 dark:bg-neutral-800/50 backdrop-blur-sm p-4 shadow-sm transition-transform duration-200 ease-out active:bg-white/75"
+            className="relative z-10 border border-border/30 bg-white/50 dark:bg-neutral-800/50 backdrop-blur-sm p-3 shadow-sm transition-transform duration-200 ease-out active:bg-white/75"
             style={{ transform: `translateX(${translateX}px)` }}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
@@ -278,7 +278,7 @@ export function TorrentItem({
 
   return (
     <div className="border border-border/30 bg-white/50 dark:bg-neutral-800/50 backdrop-blur-sm shadow-sm transition-transform duration-200 ease-out active:bg-white/75">
-      <div className="flex items-center gap-4 p-4">
+      <div className="flex items-center gap-3 p-3">
         <div className="pt-1">
           <Checkbox
             checked={selected}

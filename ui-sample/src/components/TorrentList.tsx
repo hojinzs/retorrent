@@ -258,11 +258,11 @@ export function TorrentList({ isMobile }: TorrentListProps) {
 
       {/* Selection Controls */}
       {filteredTorrents.length > 0 && (
-        <div className={`p-4 border-b border-border ${isMobile ? '' : 'bg-muted/30'}`}>
+        <div className={`px-4 py-3 border-b border-border ${isMobile ? '' : 'bg-muted/30'}`}>
           {isMobile && !isSelectionMode ? (
             // Mobile: Show Select button when not in selection mode
             <div className="flex items-center justify-between">
-              <span className="caption text-muted-foreground">
+              <span className="text-sm text-muted-foreground">
                 {filteredTorrents.length} torrent{filteredTorrents.length !== 1 ? 's' : ''}
               </span>
               <Button 
@@ -282,7 +282,7 @@ export function TorrentList({ isMobile }: TorrentListProps) {
                   checked={selectedTorrents.length === filteredTorrents.length && filteredTorrents.length > 0}
                   onCheckedChange={handleSelectAll}
                 />
-                <span className="caption">
+                <span className="text-sm">
                   Select All ({selectedTorrents.length}/{filteredTorrents.length})
                 </span>
               </div>
@@ -319,12 +319,12 @@ export function TorrentList({ isMobile }: TorrentListProps) {
       )}
 
       {/* Torrent List */}
-      <div className={isMobile ? 'pb-24' : 'flex-1 overflow-auto'}>
+      <div className={isMobile ? 'pb-24 overflow-auto' : 'flex-1 overflow-auto'}>
         {filteredTorrents.length === 0 ? (
           <div className={`flex items-center justify-center ${isMobile ? 'py-20' : 'h-full'}`}>
             <div className="text-center">
               <p className="text-muted-foreground">No torrents found</p>
-              <p className="caption text-muted-foreground mt-1">
+              <p className="text-sm text-muted-foreground mt-1">
                 {searchQuery ? 'Try adjusting your search' : 'Add a torrent to get started'}
               </p>
             </div>
@@ -334,7 +334,7 @@ export function TorrentList({ isMobile }: TorrentListProps) {
             {filteredTorrents.map(torrent => (
               <div key={torrent.id} className="flex items-start">
                 {(!isMobile || isSelectionMode) && (
-                  <div className="p-4 flex items-center">
+                  <div className="p-3 flex items-center">
                     <Checkbox
                       checked={selectedTorrents.includes(torrent.id)}
                       onCheckedChange={(checked) => handleTorrentSelect(torrent.id, !!checked)}

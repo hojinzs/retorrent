@@ -296,12 +296,12 @@ export function DownloadsPage() {
       )}
 
       {/* Torrent List */}
-      <div className={`flex-1 ${isMobile ? 'pb-24' : 'overflow-auto'}`}>
+      <div className={`flex-1 ${isMobile ? 'pb-24 overflow-auto' : 'overflow-auto'}`}>
         {filteredTorrents.length === 0 ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
               <p className="text-muted-foreground mb-2">No torrents found</p>
-              <p className="caption text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 {searchQuery ? 'Try adjusting your search' : 'Add a torrent to get started'}
               </p>
             </div>

@@ -32,20 +32,20 @@ export function TorrentItem({ torrent, onPause, onResume, onRemove }: TorrentIte
   };
 
   return (
-    <div className="px-4 py-3 border-b border-border hover:bg-accent/50 transition-colors">
+    <div className="px-4 py-2 border-b border-border hover:bg-accent/50 transition-colors">
       {/* First row: filename, status, size */}
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-3 flex-1 min-w-0">
-          <span className="caption truncate flex-1 min-w-0">{torrent.name}</span>
-          <span className={`detail ${getStatusColor(torrent.status)} shrink-0`}>
+          <span className="text-sm truncate flex-1 min-w-0">{torrent.name}</span>
+          <span className={`text-xs ${getStatusColor(torrent.status)} shrink-0`}>
             {torrent.status.charAt(0).toUpperCase() + torrent.status.slice(1)}
           </span>
-          <span className="detail text-muted-foreground shrink-0">{torrent.size}</span>
+          <span className="text-xs text-muted-foreground shrink-0">{torrent.size}</span>
         </div>
       </div>
       
       {/* Second row: progress bar with actions */}
-      <div className="flex items-center gap-3 mb-2">
+      <div className="flex items-center gap-3 mb-1">
         <div className="flex-1">
           <Progress value={torrent.progress} className="h-1.5" />
         </div>
@@ -54,28 +54,28 @@ export function TorrentItem({ torrent, onPause, onResume, onRemove }: TorrentIte
             <Button
               size="sm"
               variant="ghost"
-              className="h-8 w-8 p-0"
+              className="h-7 w-7 p-0"
               onClick={() => onResume(torrent.id)}
             >
-              <Play className="h-3.5 w-3.5" />
+              <Play className="h-3 w-3" />
             </Button>
           ) : (
             <Button
               size="sm"
               variant="ghost"
-              className="h-8 w-8 p-0"
+              className="h-7 w-7 p-0"
               onClick={() => onPause(torrent.id)}
             >
-              <Pause className="h-3.5 w-3.5" />
+              <Pause className="h-3 w-3" />
             </Button>
           )}
           <Button
             size="sm"
             variant="ghost"
-            className="h-8 w-8 p-0"
+            className="h-7 w-7 p-0"
             onClick={() => onRemove(torrent.id)}
           >
-            <Trash2 className="h-3.5 w-3.5" />
+            <Trash2 className="h-3 w-3" />
           </Button>
         </div>
       </div>
@@ -83,14 +83,14 @@ export function TorrentItem({ torrent, onPause, onResume, onRemove }: TorrentIte
       {/* Third row: speeds and progress info */}
       <div className="flex justify-between items-center">
         <div className="flex gap-4">
-          <span className="detail text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             ↓ {torrent.downloadSpeed}
           </span>
-          <span className="detail text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             ↑ {torrent.uploadSpeed}
           </span>
         </div>
-        <span className="detail text-muted-foreground">
+        <span className="text-xs text-muted-foreground">
           {torrent.progress}% • {torrent.eta}
         </span>
       </div>
