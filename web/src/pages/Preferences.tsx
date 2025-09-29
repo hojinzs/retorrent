@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@shared/components/ui/button";
 import { Input } from "@shared/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@shared/components/ui/tabs";
@@ -6,155 +6,77 @@ import { Checkbox } from "@shared/components/ui/checkbox";
 import { Label } from "@shared/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@shared/components/ui/select";
 import { Separator } from "@shared/components/ui/separator";
-import { FolderOpen, Save, RotateCcw } from "lucide-react";
+import { FolderOpen, Save, RotateCcw, Loader2 } from "lucide-react";
 import { useIsMobile } from "@shared/hooks/use-mobile";
+import { usePreferences, useUpdatePreferences, type SessionSettings } from "@shared/api/preferences";
 
 export default function Preferences() {
   const [activeTab, setActiveTab] = useState('torrents');
   const isMobile = useIsMobile();
 
-  // Initial values for comparison
-  const initialValues = {
-    // Torrents
-    downloadPath: '/downloads/complete',
-    useIncompleteDir: true,
-    incompletePath: '/downloads/incomplete',
-    startWhenAdded: true,
-    appendPart: true,
-    queueSize: '5',
-    stopRatio: '2.0',
-    stopIdle: '30',
-    stopRatioEnabled: true,
-    stopIdleEnabled: false,
+  // API hooks
+  const { data: preferencesData, isLoading, error, refetch } = usePreferences();
+  const updatePreferencesMutation = useUpdatePreferences();
 
-    // Speed
-    uploadLimitEnabled: false,
-    uploadLimit: '',
-    downloadLimitEnabled: false,
-    downloadLimit: '',
-    altUploadLimit: '50',
-    altDownloadLimit: '50',
-    scheduledEnabled: false,
-    scheduleFrom: '9:00',
-    scheduleTo: '17:00',
-    scheduleDays: 'everyday',
+  // Local state for form values
+  const [formData, setFormData] = useState<Partial<SessionSettings>>({});
+  const [hasChanges, setHasChanges] = useState(false);
 
-    // Peers
-    maxPeersPerTorrent: '50',
-    maxPeersOverall: '200',
-    encryptionMode: 'prefer',
-    usePEX: true,
-    useDHT: true,
-    useLPD: false,
-    blocklistEnabled: false,
-    blocklistUrl: 'http://www.example.com/blocklist',
+  // Update form data when API data loads
+  useEffect(() => {
+    if (preferencesData?.data) {
+      setFormData(preferencesData.data);
+      setHasChanges(false);
+    }
+  }, [preferencesData]);
 
-    // Network
-    port: '51413',
-    randomPort: false,
-    portForwardingEnabled: true,
-    limitBandwidthPriority: false,
+  // Helper to update form data and track changes
+  const updateFormValue = (key: keyof SessionSettings, value: any) => {
+    setFormData(prev => ({ ...prev, [key]: value }));
+    setHasChanges(true);
   };
 
-  // Torrents settings
-  const [downloadPath, setDownloadPath] = useState(initialValues.downloadPath);
-  const [useIncompleteDir, setUseIncompleteDir] = useState(initialValues.useIncompleteDir);
-  const [incompletePath, setIncompletePath] = useState(initialValues.incompletePath);
-  const [startWhenAdded, setStartWhenAdded] = useState(initialValues.startWhenAdded);
-  const [appendPart, setAppendPart] = useState(initialValues.appendPart);
-  const [queueSize, setQueueSize] = useState(initialValues.queueSize);
-  const [stopRatio, setStopRatio] = useState(initialValues.stopRatio);
-  const [stopIdle, setStopIdle] = useState(initialValues.stopIdle);
-  const [stopRatioEnabled, setStopRatioEnabled] = useState(initialValues.stopRatioEnabled);
-  const [stopIdleEnabled, setStopIdleEnabled] = useState(initialValues.stopIdleEnabled);
-
-  // Speed settings
-  const [uploadLimitEnabled, setUploadLimitEnabled] = useState(initialValues.uploadLimitEnabled);
-  const [uploadLimit, setUploadLimit] = useState(initialValues.uploadLimit);
-  const [downloadLimitEnabled, setDownloadLimitEnabled] = useState(initialValues.downloadLimitEnabled);
-  const [downloadLimit, setDownloadLimit] = useState(initialValues.downloadLimit);
-  const [altUploadLimit, setAltUploadLimit] = useState(initialValues.altUploadLimit);
-  const [altDownloadLimit, setAltDownloadLimit] = useState(initialValues.altDownloadLimit);
-  const [scheduledEnabled, setScheduledEnabled] = useState(initialValues.scheduledEnabled);
-  const [scheduleFrom, setScheduleFrom] = useState(initialValues.scheduleFrom);
-  const [scheduleTo, setScheduleTo] = useState(initialValues.scheduleTo);
-  const [scheduleDays, setScheduleDays] = useState(initialValues.scheduleDays);
-
-  // Peers settings
-  const [maxPeersPerTorrent, setMaxPeersPerTorrent] = useState(initialValues.maxPeersPerTorrent);
-  const [maxPeersOverall, setMaxPeersOverall] = useState(initialValues.maxPeersOverall);
-  const [encryptionMode, setEncryptionMode] = useState(initialValues.encryptionMode);
-  const [usePEX, setUsePEX] = useState(initialValues.usePEX);
-  const [useDHT, setUseDHT] = useState(initialValues.useDHT);
-  const [useLPD, setUseLPD] = useState(initialValues.useLPD);
-  const [blocklistEnabled, setBlocklistEnabled] = useState(initialValues.blocklistEnabled);
-  const [blocklistUrl, setBlocklistUrl] = useState(initialValues.blocklistUrl);
-
-  // Network settings
-  const [port, setPort] = useState(initialValues.port);
-  const [randomPort, setRandomPort] = useState(initialValues.randomPort);
-  const [portForwardingEnabled, setPortForwardingEnabled] = useState(initialValues.portForwardingEnabled);
-  const [limitBandwidthPriority, setLimitBandwidthPriority] = useState(initialValues.limitBandwidthPriority);
-
-  // Check if current values differ from initial values
-  const getCurrentValues = () => ({
-    downloadPath, useIncompleteDir, incompletePath, startWhenAdded, appendPart, queueSize,
-    stopRatio, stopIdle, stopRatioEnabled, stopIdleEnabled,
-    uploadLimitEnabled, uploadLimit, downloadLimitEnabled, downloadLimit,
-    altUploadLimit, altDownloadLimit, scheduledEnabled, scheduleFrom, scheduleTo, scheduleDays,
-    maxPeersPerTorrent, maxPeersOverall, encryptionMode, usePEX, useDHT, useLPD,
-    blocklistEnabled, blocklistUrl, port, randomPort, portForwardingEnabled, limitBandwidthPriority,
-  });
-
-  const hasChanges = () => {
-    const current = getCurrentValues();
-    return Object.keys(initialValues).some(key => 
-      (current as Record<string, any>)[key] !== (initialValues as Record<string, any>)[key]
-    );
+  // Save changes
+  const handleSave = async () => {
+    try {
+      await updatePreferencesMutation.mutateAsync(formData);
+      setHasChanges(false);
+    } catch (error) {
+      console.error('Failed to save preferences:', error);
+    }
   };
 
-  const handleSave = () => {
-    console.log('Saving preferences...');
-    // Here you would save the preferences
-    // After saving, you could update initialValues to current values
-  };
-
+  // Reset to original values
   const handleReset = () => {
-    console.log('Resetting preferences...');
-    // Reset all values to initial values
-    setDownloadPath(initialValues.downloadPath);
-    setUseIncompleteDir(initialValues.useIncompleteDir);
-    setIncompletePath(initialValues.incompletePath);
-    setStartWhenAdded(initialValues.startWhenAdded);
-    setAppendPart(initialValues.appendPart);
-    setQueueSize(initialValues.queueSize);
-    setStopRatio(initialValues.stopRatio);
-    setStopIdle(initialValues.stopIdle);
-    setStopRatioEnabled(initialValues.stopRatioEnabled);
-    setStopIdleEnabled(initialValues.stopIdleEnabled);
-    setUploadLimitEnabled(initialValues.uploadLimitEnabled);
-    setUploadLimit(initialValues.uploadLimit);
-    setDownloadLimitEnabled(initialValues.downloadLimitEnabled);
-    setDownloadLimit(initialValues.downloadLimit);
-    setAltUploadLimit(initialValues.altUploadLimit);
-    setAltDownloadLimit(initialValues.altDownloadLimit);
-    setScheduledEnabled(initialValues.scheduledEnabled);
-    setScheduleFrom(initialValues.scheduleFrom);
-    setScheduleTo(initialValues.scheduleTo);
-    setScheduleDays(initialValues.scheduleDays);
-    setMaxPeersPerTorrent(initialValues.maxPeersPerTorrent);
-    setMaxPeersOverall(initialValues.maxPeersOverall);
-    setEncryptionMode(initialValues.encryptionMode);
-    setUsePEX(initialValues.usePEX);
-    setUseDHT(initialValues.useDHT);
-    setUseLPD(initialValues.useLPD);
-    setBlocklistEnabled(initialValues.blocklistEnabled);
-    setBlocklistUrl(initialValues.blocklistUrl);
-    setPort(initialValues.port);
-    setRandomPort(initialValues.randomPort);
-    setPortForwardingEnabled(initialValues.portForwardingEnabled);
-    setLimitBandwidthPriority(initialValues.limitBandwidthPriority);
+    if (preferencesData?.data) {
+      setFormData(preferencesData.data);
+      setHasChanges(false);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="flex items-center gap-2">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          <span>Loading preferences...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">Failed to load preferences</p>
+          <Button onClick={() => refetch()} variant="outline">
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`flex-1 flex flex-col ${isMobile ? 'overflow-auto' : 'h-full'}`}>
@@ -196,8 +118,8 @@ export default function Preferences() {
                     <Label>Download to:</Label>
                     <div className="flex gap-2">
                       <Input
-                        value={downloadPath}
-                        onChange={(e) => setDownloadPath(e.target.value)}
+                        value={formData['download-dir'] || ''}
+                        onChange={(e) => updateFormValue('download-dir', e.target.value)}
                         className="flex-1 bg-input border-border"
                       />
                       <Button variant="outline" size="sm" className="shrink-0 border-border">
@@ -209,17 +131,17 @@ export default function Preferences() {
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="use-incomplete"
-                      checked={useIncompleteDir}
-                      onCheckedChange={(checked) => setUseIncompleteDir(!!checked)}
+                      checked={!!formData['incomplete-dir-enabled']}
+                      onCheckedChange={(checked) => updateFormValue('incomplete-dir-enabled', !!checked)}
                     />
                     <Label htmlFor="use-incomplete">Use temporary folder:</Label>
                   </div>
 
-                  {useIncompleteDir && (
+                  {formData['incomplete-dir-enabled'] && (
                     <div className="flex gap-2 ml-6">
                       <Input
-                        value={incompletePath}
-                        onChange={(e) => setIncompletePath(e.target.value)}
+                        value={formData['incomplete-dir'] || ''}
+                        onChange={(e) => updateFormValue('incomplete-dir', e.target.value)}
                         className="flex-1 bg-input border-border"
                       />
                       <Button variant="outline" size="sm" className="shrink-0 border-border">
@@ -231,8 +153,8 @@ export default function Preferences() {
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="start-when-added"
-                      checked={startWhenAdded}
-                      onCheckedChange={(checked) => setStartWhenAdded(!!checked)}
+                      checked={!!formData['start-added-torrents']}
+                      onCheckedChange={(checked) => updateFormValue('start-added-torrents', !!checked)}
                     />
                     <Label htmlFor="start-when-added">Start when added</Label>
                   </div>
@@ -240,8 +162,8 @@ export default function Preferences() {
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="append-part"
-                      checked={appendPart}
-                      onCheckedChange={(checked) => setAppendPart(!!checked)}
+                      checked={!!formData['rename-partial-files']}
+                      onCheckedChange={(checked) => updateFormValue('rename-partial-files', !!checked)}
                     />
                     <Label htmlFor="append-part">Append ".part" to incomplete files' names</Label>
                   </div>
@@ -267,13 +189,13 @@ export default function Preferences() {
                   <div className="flex items-center gap-4">
                     <Checkbox
                       id="stop-ratio"
-                      checked={stopRatioEnabled}
-                      onCheckedChange={(checked) => setStopRatioEnabled(!!checked)}
+                      checked={!!formData.seedRatioLimited}
+                      onCheckedChange={(checked) => updateFormValue('seedRatioLimited', !!checked)}
                     />
                     <Label htmlFor="stop-ratio">Stop seeding at ratio:</Label>
                     <Input
-                      value={stopRatio}
-                      onChange={(e) => setStopRatio(e.target.value)}
+                      value={formData.seedRatioLimit?.toString() || ''}
+                      onChange={(e) => updateFormValue('seedRatioLimit', parseFloat(e.target.value) || 0)}
                       className="w-24 bg-input border-border"
                       type="number"
                       step="0.1"

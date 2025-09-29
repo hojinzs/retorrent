@@ -366,3 +366,141 @@ func (c *Client) GetSessionStats(ctx context.Context) (interface{}, error) {
 	}
 	return &stats, nil
 }
+
+// GetSessionSettings gets transmission session settings
+func (c *Client) GetSessionSettings(ctx context.Context) (interface{}, error) {
+	session, err := c.client.SessionArgumentsGetAll(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get session settings: %w", err)
+	}
+	return &session, nil
+}
+
+// SetSessionSettings updates transmission session settings
+func (c *Client) SetSessionSettings(ctx context.Context, settings map[string]interface{}) error {
+	// Create a SessionArguments payload from the provided settings
+	payload := transmissionrpc.SessionArguments{}
+	
+	// Map common settings with proper type conversion
+	for key, value := range settings {
+		switch key {
+		case "download-dir":
+			if str, ok := value.(string); ok {
+				payload.DownloadDir = &str
+			}
+		case "incomplete-dir":
+			if str, ok := value.(string); ok {
+				payload.IncompleteDir = &str
+			}
+		case "incomplete-dir-enabled":
+			if b, ok := value.(bool); ok {
+				payload.IncompleteDirEnabled = &b
+			}
+		case "start-added-torrents":
+			if b, ok := value.(bool); ok {
+				payload.StartAddedTorrents = &b
+			}
+		case "peer-port":
+			if f, ok := value.(float64); ok {
+				port := int64(f)
+				payload.PeerPort = &port
+			}
+		case "peer-port-random-on-start":
+			if b, ok := value.(bool); ok {
+				payload.PeerPortRandomOnStart = &b
+			}
+		case "port-forwarding-enabled":
+			if b, ok := value.(bool); ok {
+				payload.PortForwardingEnabled = &b
+			}
+		case "speed-limit-down":
+			if f, ok := value.(float64); ok {
+				limit := int64(f)
+				payload.SpeedLimitDown = &limit
+			}
+		case "speed-limit-down-enabled":
+			if b, ok := value.(bool); ok {
+				payload.SpeedLimitDownEnabled = &b
+			}
+		case "speed-limit-up":
+			if f, ok := value.(float64); ok {
+				limit := int64(f)
+				payload.SpeedLimitUp = &limit
+			}
+		case "speed-limit-up-enabled":
+			if b, ok := value.(bool); ok {
+				payload.SpeedLimitUpEnabled = &b
+			}
+		case "alt-speed-down":
+			if f, ok := value.(float64); ok {
+				limit := int64(f)
+				payload.AltSpeedDown = &limit
+			}
+		case "alt-speed-up":
+			if f, ok := value.(float64); ok {
+				limit := int64(f)
+				payload.AltSpeedUp = &limit
+			}
+		case "peer-limit-global":
+			if f, ok := value.(float64); ok {
+				limit := int64(f)
+				payload.PeerLimitGlobal = &limit
+			}
+		case "peer-limit-per-torrent":
+			if f, ok := value.(float64); ok {
+				limit := int64(f)
+				payload.PeerLimitPerTorrent = &limit
+			}
+		case "encryption":
+			if str, ok := value.(string); ok {
+				enc := transmissionrpc.Encryption(str)
+				payload.Encryption = &enc
+			}
+		case "pex-enabled":
+			if b, ok := value.(bool); ok {
+				payload.PEXEnabled = &b
+			}
+		case "dht-enabled":
+			if b, ok := value.(bool); ok {
+				payload.DHTEnabled = &b
+			}
+		case "lpd-enabled":
+			if b, ok := value.(bool); ok {
+				payload.LPDEnabled = &b
+			}
+		case "seedRatioLimit":
+			if f, ok := value.(float64); ok {
+				payload.SeedRatioLimit = &f
+			}
+		case "seedRatioLimited":
+			if b, ok := value.(bool); ok {
+				payload.SeedRatioLimited = &b
+			}
+		case "idle-seeding-limit":
+			if f, ok := value.(float64); ok {
+				limit := int64(f)
+				payload.IdleSeedingLimit = &limit
+			}
+		case "idle-seeding-limit-enabled":
+			if b, ok := value.(bool); ok {
+				payload.IdleSeedingLimitEnabled = &b
+			}
+		case "queue-stalled-minutes":
+			if f, ok := value.(float64); ok {
+				limit := int64(f)
+				payload.QueueStalledMinutes = &limit
+			}
+		case "rename-partial-files":
+			if b, ok := value.(bool); ok {
+				payload.RenamePartialFiles = &b
+			}
+		}
+	}
+	
+	err := c.client.SessionArgumentsSet(ctx, payload)
+	if err != nil {
+		return fmt.Errorf("failed to set session settings: %w", err)
+	}
+	
+	return nil
+}

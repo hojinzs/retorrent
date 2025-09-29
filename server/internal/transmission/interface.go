@@ -12,6 +12,8 @@ type TransmissionClient interface {
 	StopTorrents(ctx context.Context, ids []int64) error
 	RemoveTorrents(ctx context.Context, ids []int64, deleteLocalData bool) error
 	GetSessionStats(ctx context.Context) (interface{}, error)
+	GetSessionSettings(ctx context.Context) (interface{}, error)
+	SetSessionSettings(ctx context.Context, settings map[string]interface{}) error
 }
 
 // Ensure both Client and MockClient implement the interface
