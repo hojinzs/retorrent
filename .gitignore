@@ -6,5 +6,8 @@ server/transmission-server
 web/dist/
 web/node_modules/
 
+# UI Sample dependencies
+ui-sample/node_modules/
+
 # PocketBase data
 server/pb_data/
