@@ -8,17 +8,17 @@ import (
 	"strings"
 	"time"
 
-    "github.com/joho/godotenv"
+	"github.com/joho/godotenv"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/apis"
 	"github.com/pocketbase/pocketbase/core"
 	"github.com/pocketbase/pocketbase/plugins/migratecmd"
 
-	"backend/internal/transmission"
 	"backend/internal/torrent"
+	"backend/internal/transmission"
+	"backend/internal/user"
 	_ "backend/migrations"
 	"backend/routes"
-	"backend/users"
 )
 
 func isAssetPath(p string) bool {
@@ -30,9 +30,9 @@ func isAssetPath(p string) bool {
 }
 
 func main() {
-    if err := godotenv.Load(); err != nil {
-        log.Println("No .env file found")
-    }
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found")
+	}
 
 	app := pocketbase.New()
 
@@ -110,8 +110,10 @@ func main() {
 			return re.Next()
 		})
 
-		// Register user-related routes
-		users.RegisterRoutes(app, se)
+		// Initialize and register user routes
+		userService := user.NewService(app)
+		userRoutes := routes.NewUserRoutes(userService)
+		userRoutes.RegisterRoutes(se)
 
 		// serves static files from the provided public dir (if exists)
 		// Note: avoid intercepting API routes with the catch-all static handler
