@@ -12,7 +12,7 @@ import (
 
 type userResponse struct {
 	ID              string `json:"id"`
-	Username        string `json:"username"`
+	Name            string `json:"name"`
 	Email           string `json:"email"`
 	Role            string `json:"role"`
 	Verified        bool   `json:"verified"`
@@ -48,9 +48,11 @@ func mapUserRecord(record *core.Record) userResponse {
 		roleValue = "user"
 	}
 
+	name := record.GetString("name")
+
 	return userResponse{
 		ID:              record.Id,
-		Username:        record.GetString("username"),
+		Name:            name,
 		Email:           record.GetString("email"),
 		Role:            roleValue,
 		Verified:        record.GetBool("verified"),
@@ -83,6 +85,10 @@ func listUsersHandler(app *pocketbase.PocketBase) func(*core.RequestEvent) error
 			return errorResponse(re, http.StatusInternalServerError, "Failed to fetch users")
 		}
 
+		for _, record := range records {
+			log.Printf("record export: %+v", record)
+		}
+
 		users := make([]userResponse, 0, len(records))
 		for _, record := range records {
 			users = append(users, mapUserRecord(record))
@@ -93,6 +99,7 @@ func listUsersHandler(app *pocketbase.PocketBase) func(*core.RequestEvent) error
 }
 
 type createUserRequest struct {
+	Name            string `json:"name"`
 	Username        string `json:"username"`
 	Email           string `json:"email"`
 	Password        string `json:"password"`
@@ -108,12 +115,16 @@ func createUserHandler(app *pocketbase.PocketBase) func(*core.RequestEvent) erro
 			return errorResponse(re, http.StatusBadRequest, "Invalid request data")
 		}
 
-		username := strings.TrimSpace(payload.Username)
+		name := strings.TrimSpace(payload.Name)
+		if name == "" {
+			name = strings.TrimSpace(payload.Username)
+		}
+
 		email := strings.TrimSpace(payload.Email)
 		password := strings.TrimSpace(payload.Password)
 
-		if username == "" || email == "" || password == "" {
-			return errorResponse(re, http.StatusBadRequest, "Username, email, and password are required")
+		if name == "" || email == "" || password == "" {
+			return errorResponse(re, http.StatusBadRequest, "Name, email, and password are required")
 		}
 
 		if len(password) < 8 {
@@ -131,7 +142,7 @@ func createUserHandler(app *pocketbase.PocketBase) func(*core.RequestEvent) erro
 		}
 
 		record := core.NewRecord(collection)
-		record.Set("username", username)
+		record.Set("name", name)
 		record.Set("email", email)
 		record.Set("role", roleValue)
 		record.Set("verified", payload.Verified)
@@ -139,7 +150,7 @@ func createUserHandler(app *pocketbase.PocketBase) func(*core.RequestEvent) erro
 		record.SetPassword(password)
 
 		if err := app.Save(record); err != nil {
-			log.Printf("Failed to create user %q: %v", username, err)
+			log.Printf("Failed to create user %q: %v", name, err)
 			return errorResponse(re, http.StatusBadRequest, "Failed to create user")
 		}
 
@@ -148,6 +159,7 @@ func createUserHandler(app *pocketbase.PocketBase) func(*core.RequestEvent) erro
 }
 
 type updateUserRequest struct {
+	Name            *string `json:"name"`
 	Username        *string `json:"username"`
 	Email           *string `json:"email"`
 	Password        *string `json:"password"`
@@ -178,12 +190,20 @@ func updateUserHandler(app *pocketbase.PocketBase) func(*core.RequestEvent) erro
 			return errorResponse(re, http.StatusNotFound, "User not found")
 		}
 
-		if payload.Username != nil {
-			username := strings.TrimSpace(*payload.Username)
-			if username == "" {
-				return errorResponse(re, http.StatusBadRequest, "Username cannot be empty")
+		if payload.Name != nil || payload.Username != nil {
+			var name string
+
+			if payload.Name != nil {
+				name = strings.TrimSpace(*payload.Name)
+			} else if payload.Username != nil {
+				name = strings.TrimSpace(*payload.Username)
 			}
-			record.Set("username", username)
+
+			if name == "" {
+				return errorResponse(re, http.StatusBadRequest, "Name cannot be empty")
+			}
+
+			record.Set("name", name)
 		}
 
 		if payload.Email != nil {
@@ -285,6 +305,7 @@ func RegisterRoutes(app *pocketbase.PocketBase, se *core.ServeEvent) {
 
 		// Parse request data
 		var data struct {
+			Name     string `json:"name"`
 			Username string `json:"username"`
 			Email    string `json:"email"`
 			Password string `json:"password"`
@@ -295,8 +316,13 @@ func RegisterRoutes(app *pocketbase.PocketBase, se *core.ServeEvent) {
 		}
 
 		// Validate input
-		if data.Username == "" || data.Email == "" || data.Password == "" {
-			return re.JSON(400, map[string]string{"error": "Username, email, and password are required"})
+		name := data.Name
+		if name == "" {
+			name = data.Username
+		}
+
+		if name == "" || data.Email == "" || data.Password == "" {
+			return re.JSON(400, map[string]string{"error": "Name, email, and password are required"})
 		}
 
 		if len(data.Password) < 8 {
@@ -305,7 +331,7 @@ func RegisterRoutes(app *pocketbase.PocketBase, se *core.ServeEvent) {
 
 		// Create new admin user record
 		record := core.NewRecord(collection)
-		record.Set("username", data.Username)
+		record.Set("name", name)
 		record.Set("email", data.Email)
 		record.Set("role", "admin")
 		record.Set("emailVisibility", false)
@@ -323,7 +349,7 @@ func RegisterRoutes(app *pocketbase.PocketBase, se *core.ServeEvent) {
 			return re.JSON(500, map[string]string{"error": err.Error()})
 		}
 
-		log.Printf("Initial admin user created: %s (%s)", data.Username, data.Email)
+		log.Printf("Initial admin user created: %s (%s)", name, data.Email)
 
 		return re.JSON(201, map[string]string{"message": "Admin account created successfully"})
 	})

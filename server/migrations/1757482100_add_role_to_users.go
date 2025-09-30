@@ -59,16 +59,16 @@ func init() {
 		recordToUpdate := records[0]
 
 		recordToUpdate.Set("role", "admin")
-		username := recordToUpdate.GetString("username")
-		log.Printf("Attempting to grant admin role to user: %s", username)
+		name := recordToUpdate.GetString("name")
+		log.Printf("Attempting to grant admin role to user: %s", name)
 
 		// Save the change to the user record
 		if err := app.Save(recordToUpdate); err != nil {
-			log.Printf("Failed to grant admin role to user %s: %v", username, err)
+			log.Printf("Failed to grant admin role to user %s: %v", name, err)
 			return err
 		}
 
-		log.Printf("Successfully granted admin role to user: %s", username)
+		log.Printf("Successfully granted admin role to user: %s", name)
 		return nil
 	}, func(app core.App) error {
 		// --- Fallback/Down migration ---

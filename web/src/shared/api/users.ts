@@ -4,7 +4,7 @@ export type UserRole = 'admin' | 'user'
 
 export interface UserRecord {
   id: string
-  username: string
+  name: string
   email: string
   role: UserRole
   verified: boolean
@@ -18,7 +18,7 @@ interface UsersResponse {
 }
 
 export interface CreateUserRequest {
-  username: string
+  name: string
   email: string
   password: string
   role: UserRole
@@ -29,7 +29,7 @@ export interface CreateUserRequest {
 export interface UpdateUserRequest {
   id: string
   data: {
-    username?: string
+    name?: string
     email?: string
     password?: string
     role?: UserRole

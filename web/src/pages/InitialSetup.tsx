@@ -14,7 +14,7 @@ import { useNavigate } from "@tanstack/react-router"
 import { useAuth } from "@shared/contexts/AuthContext"
 
 export default function InitialSetup() {
-  const [username, setUsername] = useState("")
+  const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -29,7 +29,7 @@ export default function InitialSetup() {
     setError(null)
 
     // Client-side validation
-    if (!username || !email || !password || !confirmPassword) {
+    if (!name || !email || !password || !confirmPassword) {
       setError("All fields are required")
       setIsLoading(false)
       return
@@ -63,7 +63,7 @@ export default function InitialSetup() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          username,
+          name,
           email,
           password,
         }),
@@ -103,13 +103,13 @@ export default function InitialSetup() {
               </div>
             )}
             <div className="grid gap-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="name">Name</Label>
               <Input
-                id="username"
+                id="name"
                 type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                autoComplete="username"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                autoComplete="name"
                 placeholder="admin"
                 disabled={isLoading}
                 required

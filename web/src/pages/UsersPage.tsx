@@ -18,7 +18,7 @@ import {
 import { useIsMobile } from '@shared/hooks/use-mobile'
 
 interface UserFormSubmit {
-  username: string
+  name: string
   email: string
   role: UserRole
   password?: string
@@ -46,7 +46,7 @@ function UserFormDialog({
   isMobile,
 }: UserFormDialogProps) {
   const [formState, setFormState] = useState({
-    username: initialValues?.username ?? '',
+    name: initialValues?.name ?? '',
     email: initialValues?.email ?? '',
     role: (initialValues?.role ?? 'user') as UserRole,
     password: '',
@@ -59,7 +59,7 @@ function UserFormDialog({
   useEffect(() => {
     if (open) {
       setFormState({
-        username: initialValues?.username ?? '',
+        name: initialValues?.name ?? '',
         email: initialValues?.email ?? '',
         role: (initialValues?.role ?? 'user') as UserRole,
         password: '',
@@ -75,8 +75,8 @@ function UserFormDialog({
     event.preventDefault()
     setFormError(null)
 
-    if (!formState.username.trim() || !formState.email.trim()) {
-      setFormError('Username and email are required.')
+    if (!formState.name.trim() || !formState.email.trim()) {
+      setFormError('Name and email are required.')
       return
     }
 
@@ -92,7 +92,7 @@ function UserFormDialog({
 
     try {
       await onSubmit({
-        username: formState.username.trim(),
+        name: formState.name.trim(),
         email: formState.email.trim(),
         role: formState.role,
         password: formState.password.trim() ? formState.password.trim() : undefined,
@@ -119,11 +119,11 @@ function UserFormDialog({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid gap-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="name">Name</Label>
               <Input
-                id="username"
-                value={formState.username}
-                onChange={(event) => setFormState((prev) => ({ ...prev, username: event.target.value }))}
+                id="name"
+                value={formState.name}
+                onChange={(event) => setFormState((prev) => ({ ...prev, name: event.target.value }))}
                 placeholder="jane.doe"
                 disabled={isSubmitting}
               />
@@ -254,7 +254,7 @@ export default function UsersPage() {
     }
 
     await createUserMutation.mutateAsync({
-      username: values.username,
+      name: values.name,
       email: values.email,
       password: values.password,
       role: values.role,
@@ -273,7 +273,7 @@ export default function UsersPage() {
     const payload: UpdateUserRequest = {
       id: editingUser.id,
       data: {
-        username: values.username,
+        name: values.name,
         email: values.email,
         role: values.role,
         verified: values.verified,
@@ -333,7 +333,7 @@ export default function UsersPage() {
           </div>
         ) : (
           <div className="flex flex-col">
-            <div className="hidden md:grid grid-cols-[2fr,2fr,1fr,1fr,1.5fr,auto] items-center gap-4 border-b border-border/60 px-8 py-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <div className="hidden md:grid grid-cols-[2fr_2fr_1fr_1fr_1.5fr_auto] items-center gap-4 border-b border-border/60 px-8 py-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
               <span className="truncate">User</span>
               <span className="truncate">Email</span>
               <span className="truncate">Role</span>
@@ -344,11 +344,15 @@ export default function UsersPage() {
 
             <div className="hidden md:flex md:flex-col">
               {users.map((user) => (
-                <div key={user.id} className="grid grid-cols-[2fr,2fr,1fr,1fr,1.5fr,auto] items-center gap-4 border-b border-border/60 px-8 py-3 text-sm last:border-b-0">
-                  <div className="flex items-center gap-2 truncate">
-                    {!user.verified && <Badge variant="outline">Pending</Badge>}
-                    <span className="font-medium truncate" title={user.username}>
-                      {user.username}
+                <div key={user.id} className="grid grid-cols-[2fr_2fr_1fr_1fr_1.5fr_auto] items-center gap-4 border-b border-border/60 px-8 py-3 text-sm last:border-b-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    {!user.verified && (
+                      <Badge variant="outline" className="shrink-0">
+                        Pending
+                      </Badge>
+                    )}
+                    <span className="font-medium truncate flex-1" title={user.name}>
+                      {user.name}
                     </span>
                   </div>
                   <span className="truncate text-sm" title={user.email}>
@@ -382,10 +386,18 @@ export default function UsersPage() {
                   onClick={() => handleEditClick(user)}
                 >
                   <p className="text-sm font-medium">
-                    {!user.verified ? `[Pending] ${user.username}` : user.username}
+                    {user.name}{!user.verified && (
+                      <Badge className="ml-2">
+                        Pending
+                      </Badge>
+                    )}
                   </p>
                   <p className="mt-2 text-sm text-muted-foreground">{user.email}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">({user.role})</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    <Badge variant="outline">
+                      {user.role}
+                    </Badge>
+                    </p>
                 </button>
               ))}
             </div>
