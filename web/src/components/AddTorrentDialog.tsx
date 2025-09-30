@@ -123,7 +123,7 @@ export function AddTorrentDialog({ open, onOpenChange, onAddTorrent }: AddTorren
       <DialogPortal>
         <DialogOverlay className="bg-white/50 dark:bg-black/50 transition-all data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0" />
         <DialogPrimitive.Content
-          className="fixed inset-x-4 bottom-6 z-50 mx-auto w-[calc(100%-2rem)] max-w-xl overflow-hidden rounded-3xl border border-white/30 bg-white/25 p-0 text-foreground shadow-[0_25px_70px_-30px_rgba(15,23,42,0.75)] backdrop-blur-2xl transition-all data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-bottom-8 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-bottom-8 dark:border-white/10 dark:bg-neutral-900/50 sm:inset-x-auto sm:right-6 sm:left-auto"
+          className="fixed inset-x-4 bottom-6 z-50 mx-auto w-[calc(100%-2rem)] max-w-xl overflow-hidden rounded-3xl border border-white/30 bg-white/25 p-0 text-foreground shadow-[0_25px_70px_-30px_rgba(15,23,42,0.75)] backdrop-blur-2xl transition-all data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-bottom-8 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-bottom-8 dark:border-white/10 dark:bg-neutral-900/50 sm:inset-x-auto sm:left-auto sm:right-6 md:bottom-auto md:left-1/2 md:right-auto md:top-1/2 md:w-full md:max-w-2xl md:-translate-x-1/2 md:-translate-y-1/2 md:data-[state=open]:slide-in-from-bottom-0 md:data-[state=open]:zoom-in-95 md:data-[state=closed]:slide-out-to-bottom-0 md:data-[state=closed]:zoom-out-95"
         >
           <div className="relative overflow-hidden">
             <div
