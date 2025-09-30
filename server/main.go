@@ -99,6 +99,10 @@ func main() {
 		torrentRoutes := routes.NewTorrentRoutes(torrentService)
 		torrentRoutes.RegisterRoutes(se)
 
+		// Initialize and register preference routes
+		preferenceRoutes := routes.NewPreferenceRoutes(transmissionClient)
+		preferenceRoutes.RegisterRoutes(se)
+
 		// Add API routes for torrent operations
 		se.Router.GET("/api/torrents", func(re *core.RequestEvent) error {
 			// This will be handled by PocketBase's built-in REST API for the torrents collection

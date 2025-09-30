@@ -111,6 +111,44 @@ func (m *MockClient) GetSessionStats(ctx context.Context) (interface{}, error) {
 	}, nil
 }
 
+// GetSessionSettings returns mock session settings
+func (m *MockClient) GetSessionSettings(ctx context.Context) (interface{}, error) {
+	return map[string]interface{}{
+		"download-dir":                   "/downloads/complete",
+		"incomplete-dir":                 "/downloads/incomplete", 
+		"incomplete-dir-enabled":         true,
+		"start-added-torrents":           true,
+		"peer-port":                      51413,
+		"peer-port-random-on-start":      false,
+		"port-forwarding-enabled":        true,
+		"speed-limit-down":               0,
+		"speed-limit-down-enabled":       false,
+		"speed-limit-up":                 0,
+		"speed-limit-up-enabled":         false,
+		"alt-speed-down":                 50,
+		"alt-speed-up":                   50,
+		"peer-limit-global":              200,
+		"peer-limit-per-torrent":         50,
+		"encryption":                     "prefer",
+		"pex-enabled":                    true,
+		"dht-enabled":                    true,
+		"lpd-enabled":                    false,
+		"seedRatioLimit":                 2.0,
+		"seedRatioLimited":               true,
+		"idle-seeding-limit":             30,
+		"idle-seeding-limit-enabled":     false,
+		"queue-stalled-minutes":          5,
+	}, nil
+}
+
+// SetSessionSettings simulates setting session settings
+func (m *MockClient) SetSessionSettings(ctx context.Context, settings map[string]interface{}) error {
+	// For mock, we just log the settings that would be set
+	// In a real scenario, we'd store these to return in GetSessionSettings
+	fmt.Printf("Mock: Setting session settings: %+v\n", settings)
+	return nil
+}
+
 // generateMockTorrents creates sample torrent data for demo
 func generateMockTorrents() []*TorrentData {
 	return []*TorrentData{
