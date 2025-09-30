@@ -33,9 +33,18 @@ interface UserFormDialogProps {
   initialValues?: Partial<UserRecord>
   onSubmit: (values: UserFormSubmit) => Promise<void>
   isSubmitting: boolean
+  isMobile: boolean
 }
 
-function UserFormDialog({ mode, open, onOpenChange, initialValues, onSubmit, isSubmitting }: UserFormDialogProps) {
+function UserFormDialog({
+  mode,
+  open,
+  onOpenChange,
+  initialValues,
+  onSubmit,
+  isSubmitting,
+  isMobile,
+}: UserFormDialogProps) {
   const [formState, setFormState] = useState({
     username: initialValues?.username ?? '',
     email: initialValues?.email ?? '',
@@ -97,7 +106,7 @@ function UserFormDialog({ mode, open, onOpenChange, initialValues, onSubmit, isS
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent motion="from-bottom" mobileFullscreen={isMobile}>
         <DialogHeader>
           <DialogTitle>{mode === 'create' ? 'Create user' : 'Edit user'}</DialogTitle>
           <DialogDescription>
@@ -324,39 +333,36 @@ export default function UsersPage() {
           </div>
         ) : (
           <div className="flex flex-col">
-            <div className="hidden md:grid grid-cols-[2fr,2fr,1fr,1fr,1.5fr,auto] gap-4 border-b border-border/60 px-8 py-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              <span>User</span>
-              <span>Email</span>
-              <span>Role</span>
-              <span>Status</span>
-              <span>Updated</span>
+            <div className="hidden md:grid grid-cols-[2fr,2fr,1fr,1fr,1.5fr,auto] items-center gap-4 border-b border-border/60 px-8 py-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              <span className="truncate">User</span>
+              <span className="truncate">Email</span>
+              <span className="truncate">Role</span>
+              <span className="truncate">Status</span>
+              <span className="truncate">Updated</span>
               <span className="text-right">Actions</span>
             </div>
 
             <div className="hidden md:flex md:flex-col">
               {users.map((user) => (
-                <div key={user.id} className="grid grid-cols-[2fr,2fr,1fr,1fr,1.5fr,auto] items-center gap-4 border-b border-border/60 px-8 py-4 last:border-b-0">
-                  <div>
-                    <p className="font-medium">{user.username}</p>
-                    <p className="text-xs text-muted-foreground">ID: {user.id}</p>
+                <div key={user.id} className="grid grid-cols-[2fr,2fr,1fr,1fr,1.5fr,auto] items-center gap-4 border-b border-border/60 px-8 py-3 text-sm last:border-b-0">
+                  <div className="flex items-center gap-2 truncate">
+                    {!user.verified && <Badge variant="outline">Pending</Badge>}
+                    <span className="font-medium truncate" title={user.username}>
+                      {user.username}
+                    </span>
                   </div>
-                  <div>
-                    <p className="font-medium">{user.email}</p>
-                    <p className="text-xs text-muted-foreground">{user.emailVisibility ? 'Visible to other users' : 'Hidden from other users'}</p>
-                  </div>
-                  <div>
-                    <Badge variant={user.role === 'admin' ? 'default' : 'secondary'} className="capitalize">
-                      {user.role}
-                    </Badge>
-                  </div>
-                  <div>
-                    <Badge variant={user.verified ? 'default' : 'outline'}>
-                      {user.verified ? 'Verified' : 'Pending'}
-                    </Badge>
-                  </div>
-                  <div className="text-sm text-muted-foreground">
+                  <span className="truncate text-sm" title={user.email}>
+                    {user.email}
+                  </span>
+                  <span className="capitalize text-sm text-muted-foreground">
+                    {user.role}
+                  </span>
+                  <span className="text-sm text-muted-foreground">
+                    {user.verified ? 'Verified' : 'Pending'}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
                     {formatTimestamp(user.updated)}
-                  </div>
+                  </span>
                   <div className="flex justify-end">
                     <Button variant="ghost" size="sm" onClick={() => handleEditClick(user)}>
                       <Pencil className="mr-2 h-4 w-4" />
@@ -376,10 +382,10 @@ export default function UsersPage() {
                   onClick={() => handleEditClick(user)}
                 >
                   <p className="text-sm font-medium">
-                    ({user.verified ? 'Verified' : 'Pending'}) {user.username}
+                    {!user.verified ? `[Pending] ${user.username}` : user.username}
                   </p>
                   <p className="mt-2 text-sm text-muted-foreground">{user.email}</p>
-                  <p className="mt-1 text-xs font-medium text-muted-foreground capitalize">{user.role}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">({user.role})</p>
                 </button>
               ))}
             </div>
@@ -393,6 +399,7 @@ export default function UsersPage() {
         onOpenChange={setCreateOpen}
         onSubmit={handleCreateSubmit}
         isSubmitting={createUserMutation.isPending}
+        isMobile={isMobile}
       />
 
       <UserFormDialog
@@ -402,6 +409,7 @@ export default function UsersPage() {
         initialValues={editingUser ?? undefined}
         onSubmit={handleEditSubmit}
         isSubmitting={updateUserMutation.isPending}
+        isMobile={isMobile}
       />
     </div>
   )
