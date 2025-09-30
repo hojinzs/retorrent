@@ -15,6 +15,7 @@ import {
   type UserRole,
   type UpdateUserRequest,
 } from '@shared/api/users'
+import { useIsMobile } from '@shared/hooks/use-mobile'
 
 interface UserFormSubmit {
   username: string
@@ -234,6 +235,7 @@ export default function UsersPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<UserRecord | null>(null)
+  const isMobile = useIsMobile()
 
   const users = useMemo(() => data?.users ?? [], [data])
 
@@ -292,19 +294,19 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full">
-      <div className="border-b border-border px-8 py-6 flex items-center justify-between">
-        <div>
+    <div className={`flex-1 flex flex-col ${isMobile ? 'overflow-auto' : 'h-full'}`}>
+      <div className={`${isMobile ? 'p-4' : 'px-8 py-6'} border-b border-border flex ${isMobile ? 'flex-col gap-4' : 'items-center justify-between'}`}>
+        <div className="space-y-1">
           <h1 className="text-2xl font-semibold">Users</h1>
           <p className="text-sm text-muted-foreground">Manage application accounts and permissions.</p>
         </div>
-        <Button onClick={() => setCreateOpen(true)}>
+        <Button onClick={() => setCreateOpen(true)} className={isMobile ? 'self-start' : ''}>
           <Plus className="mr-2 h-4 w-4" />
           New user
         </Button>
       </div>
 
-      <div className="flex-1 overflow-auto p-8">
+      <div className={`flex-1 ${isMobile ? 'overflow-auto' : 'overflow-auto'}`}>
         {isLoading ? (
           <div className="flex h-full items-center justify-center text-muted-foreground">
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -321,8 +323,8 @@ export default function UsersPage() {
             <p className="text-xs">Create your first account to get started.</p>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-border bg-card">
-            <div className="grid grid-cols-[2fr,2fr,1fr,1fr,1.5fr,auto] gap-4 border-b border-border px-6 py-3 text-sm font-medium text-muted-foreground">
+          <div className="flex flex-col">
+            <div className="hidden md:grid grid-cols-[2fr,2fr,1fr,1fr,1.5fr,auto] gap-4 border-b border-border/60 px-8 py-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
               <span>User</span>
               <span>Email</span>
               <span>Role</span>
@@ -330,37 +332,57 @@ export default function UsersPage() {
               <span>Updated</span>
               <span className="text-right">Actions</span>
             </div>
-            {users.map((user) => (
-              <div key={user.id} className="grid grid-cols-[2fr,2fr,1fr,1fr,1.5fr,auto] items-center gap-4 border-b border-border/60 px-6 py-4 last:border-b-0">
-                <div>
-                  <p className="font-medium">{user.username}</p>
-                  <p className="text-xs text-muted-foreground">ID: {user.id}</p>
+
+            <div className="hidden md:flex md:flex-col">
+              {users.map((user) => (
+                <div key={user.id} className="grid grid-cols-[2fr,2fr,1fr,1fr,1.5fr,auto] items-center gap-4 border-b border-border/60 px-8 py-4 last:border-b-0">
+                  <div>
+                    <p className="font-medium">{user.username}</p>
+                    <p className="text-xs text-muted-foreground">ID: {user.id}</p>
+                  </div>
+                  <div>
+                    <p className="font-medium">{user.email}</p>
+                    <p className="text-xs text-muted-foreground">{user.emailVisibility ? 'Visible to other users' : 'Hidden from other users'}</p>
+                  </div>
+                  <div>
+                    <Badge variant={user.role === 'admin' ? 'default' : 'secondary'} className="capitalize">
+                      {user.role}
+                    </Badge>
+                  </div>
+                  <div>
+                    <Badge variant={user.verified ? 'default' : 'outline'}>
+                      {user.verified ? 'Verified' : 'Pending'}
+                    </Badge>
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {formatTimestamp(user.updated)}
+                  </div>
+                  <div className="flex justify-end">
+                    <Button variant="ghost" size="sm" onClick={() => handleEditClick(user)}>
+                      <Pencil className="mr-2 h-4 w-4" />
+                      Edit
+                    </Button>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-medium">{user.email}</p>
-                  <p className="text-xs text-muted-foreground">{user.emailVisibility ? 'Visible to other users' : 'Hidden from other users'}</p>
-                </div>
-                <div>
-                  <Badge variant={user.role === 'admin' ? 'default' : 'secondary'} className="capitalize">
-                    {user.role}
-                  </Badge>
-                </div>
-                <div>
-                  <Badge variant={user.verified ? 'default' : 'outline'}>
-                    {user.verified ? 'Verified' : 'Pending'}
-                  </Badge>
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  {formatTimestamp(user.updated)}
-                </div>
-                <div className="flex justify-end">
-                  <Button variant="ghost" size="sm" onClick={() => handleEditClick(user)}>
-                    <Pencil className="mr-2 h-4 w-4" />
-                    Edit
-                  </Button>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
+
+            <div className="md:hidden flex flex-col divide-y divide-border/60">
+              {users.map((user) => (
+                <button
+                  key={user.id}
+                  type="button"
+                  className="w-full text-left px-4 py-4 active:bg-muted/60"
+                  onClick={() => handleEditClick(user)}
+                >
+                  <p className="text-sm font-medium">
+                    ({user.verified ? 'Verified' : 'Pending'}) {user.username}
+                  </p>
+                  <p className="mt-2 text-sm text-muted-foreground">{user.email}</p>
+                  <p className="mt-1 text-xs font-medium text-muted-foreground capitalize">{user.role}</p>
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>
