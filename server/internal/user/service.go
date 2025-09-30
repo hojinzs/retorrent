@@ -1,6 +1,7 @@
 package user
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"strings"
@@ -198,7 +199,7 @@ func (s *Service) Update(id string, params UpdateParams) (Response, error) {
 
 	record, err := s.app.FindRecordById(collection, id, nil)
 	if err != nil {
-		if errors.Is(err, core.ErrNotFound) {
+		if errors.Is(err, sql.ErrNoRows) {
 			return Response{}, NotFoundError{Message: "user not found"}
 		}
 		return Response{}, fmt.Errorf("find user: %w", err)
