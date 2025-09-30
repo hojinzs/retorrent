@@ -1,6 +1,6 @@
 //go:build !pbadm
 
-package users
+package user
 
 import (
 	"github.com/pocketbase/pocketbase"
