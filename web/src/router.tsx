@@ -11,6 +11,7 @@ import { DownloadsPage } from './pages/DownloadsPage'
 import Login from './pages/Login'
 import InitialSetup from './pages/InitialSetup'
 import Preferences from './pages/Preferences'
+import UsersPage from './pages/UsersPage'
 import { Button } from '@shared/components/ui/button'
 import { Menu } from 'lucide-react'
 import { useAuth } from '@shared/contexts/AuthContext'
@@ -156,10 +157,16 @@ const prefsRoute = createRoute({
   component: Preferences,
 })
 
+const usersRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/users',
+  component: UsersPage,
+})
+
 const routeTree = rootRoute.addChildren([
   initialSetupRoute,
   loginRoute,
-  appRoute.addChildren([indexRoute, downloadsRoute, prefsRoute]),
+  appRoute.addChildren([indexRoute, downloadsRoute, prefsRoute, usersRoute]),
 ])
 
 export const router = createRouter({

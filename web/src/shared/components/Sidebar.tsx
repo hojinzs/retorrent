@@ -14,7 +14,7 @@ interface SidebarProps {
 const menuItems = [
   { id: 'downloads', label: 'Downloads', icon: Download, path: '/downloads', disabled: false },
   { id: 'preferences', label: 'Preferences', icon: Settings, path: '/preferences', disabled: false },
-  { id: 'users', label: 'Users', icon: Users, path: '/users', disabled: true },
+  { id: 'users', label: 'Users', icon: Users, path: '/users', disabled: false },
 ];
 
 export function Sidebar({ isDark, onThemeToggle, activePath, isMobile, isOpen, onClose }: SidebarProps) {
