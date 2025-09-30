@@ -30,8 +30,8 @@ export function DownloadItemCard({
 
   return (
     <Card className={`transition-colors ${isSelected ? 'ring-2 ring-primary' : ''}`}>
-      <div className="flex items-center justify-between p-3 pr-4">
-        <div className="flex flex-1 items-center gap-4">
+      <div className="flex items-center justify-between p-2 pr-3">
+        <div className="flex flex-1 items-center gap-3">
           {showSelection && (
             <Checkbox
               checked={isSelected}
@@ -40,8 +40,8 @@ export function DownloadItemCard({
             />
           )}
           <div className="flex-1">
-            <div className="font-semibold">{torrent.name}</div>
-            <div className="mt-1.5 flex items-center gap-2">
+            <div className="text-sm font-medium">{torrent.name}</div>
+            <div className="mt-1 flex items-center gap-2">
               <StatusBadge status={torrent.status} />
               <div className="text-xs text-muted-foreground">
                 {Math.round(progressPercent)}% • {sizeText} • ratio {torrent.uploadRatio.toFixed(2)}
@@ -57,10 +57,10 @@ export function DownloadItemCard({
                 </div>
               )}
             </div>
-            <Progress value={progressPercent} className="mt-2 h-1.5 max-w-xs" />
+            <Progress value={progressPercent} className="mt-1 h-1.5 max-w-xs" />
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           {isActive ? (
             <Button variant="outline" size="sm" onClick={() => handleAction('stop')}>
               Pause
