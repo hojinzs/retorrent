@@ -145,7 +145,10 @@ func (s *SyncService) updateTorrentsInDB(torrents []*TorrentData) error {
 
 	log.Println("Fetching existing torrent records from database...")
 	// Get existing torrents by hash
-	existingTorrents := make(map[string]*core.Record)
+	existingTorrentsByHash := make(map[string]*core.Record)
+	existingTorrentsByID := make(map[int64]*core.Record)
+	existingRecords := make(map[string]*core.Record)
+
 	records, err := s.app.FindRecordsByFilter(collection, "", "", 0, 0, nil)
 	if err != nil {
 		return fmt.Errorf("failed to fetch existing torrents: %w", err)
@@ -153,9 +156,15 @@ func (s *SyncService) updateTorrentsInDB(torrents []*TorrentData) error {
 	log.Printf("Fetched %d existing torrent records.", len(records))
 
 	for _, record := range records {
+		existingRecords[record.Id] = record
 		hash := record.GetString("hash")
 		if hash != "" {
-			existingTorrents[hash] = record
+			existingTorrentsByHash[hash] = record
+		}
+
+		transmissionID := record.GetInt("transmissionId")
+		if transmissionID != 0 {
+			existingTorrentsByID[int64(transmissionID)] = record
 		}
 	}
 
@@ -167,13 +176,27 @@ func (s *SyncService) updateTorrentsInDB(torrents []*TorrentData) error {
 	for _, torrent := range torrents {
 		currentHashes[torrent.HashString] = true
 
-		record, exists := existingTorrents[torrent.HashString]
+		var (
+			record *core.Record
+			exists bool
+		)
+
+		if torrent.HashString != "" {
+			record, exists = existingTorrentsByHash[torrent.HashString]
+		}
+
+		if !exists && torrent.ID != 0 {
+			record, exists = existingTorrentsByID[torrent.ID]
+		}
+
 		if exists {
 			// Update existing record
 			if err := s.updateTorrentRecord(record, torrent); err != nil {
 				log.Printf("Failed to update torrent %s: %v", torrent.Name, err)
 				continue
 			}
+
+			delete(existingRecords, record.Id)
 		} else {
 			// Create new record
 			if err := s.createTorrentRecord(collection, torrent); err != nil {
@@ -186,11 +209,16 @@ func (s *SyncService) updateTorrentsInDB(torrents []*TorrentData) error {
 
 	log.Println("Checking for torrents removed from Transmission...")
 	// Hard delete records for torrents that no longer exist in Transmission
-	for hash, record := range existingTorrents {
-		if !currentHashes[hash] {
+	for _, record := range existingRecords {
+		hash := record.GetString("hash")
+		if hash != "" && !currentHashes[hash] {
 			// Torrent was removed from Transmission -> delete the DB record
 			if err := s.app.Delete(record); err != nil {
-				log.Printf("Failed to delete torrent record (hash: %s): %v", hash, err)
+				if hash != "" {
+					log.Printf("Failed to delete torrent record (hash: %s): %v", hash, err)
+				} else {
+					log.Printf("Failed to delete torrent record (id: %s): %v", record.Id, err)
+				}
 			}
 		}
 	}
