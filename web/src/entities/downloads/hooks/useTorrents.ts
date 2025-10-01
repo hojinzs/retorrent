@@ -1,6 +1,23 @@
 import { useEffect, useState, useCallback } from 'react'
+import type { RecordModel } from 'pocketbase'
 import pb from '@shared/lib/pocketbase'
 import type { Torrent } from '../model'
+
+function normalizeTorrent(record: RecordModel<Torrent> | Torrent): Torrent {
+  if ('export' in record && typeof record.export === 'function') {
+    return record.export() as Torrent
+  }
+
+  return record as Torrent
+}
+
+function sortByUpdated(torrents: Torrent[]) {
+  return [...torrents].sort((a, b) => {
+    const aTime = new Date(a.updated).getTime()
+    const bTime = new Date(b.updated).getTime()
+    return bTime - aTime
+  })
+}
 
 export function useTorrents() {
   const [torrents, setTorrents] = useState<Torrent[]>([])
@@ -8,22 +25,28 @@ export function useTorrents() {
   const [error, setError] = useState<string | null>(null)
 
   // Load initial data
-  const loadTorrents = useCallback(async () => {
+  const loadTorrents = useCallback(async (options?: { silent?: boolean }) => {
+    const silent = options?.silent ?? false
+
     try {
-      setIsLoading(true)
+      if (!silent) {
+        setIsLoading(true)
+      }
       setError(null)
-      
+
       const records = await pb.collection('torrents').getFullList<Torrent>({
         sort: '-updated',
         filter: 'status != "removed"'
       })
-      
-      setTorrents(records)
+
+      setTorrents(sortByUpdated(records.map(normalizeTorrent)))
     } catch (err) {
       console.error('Failed to load torrents:', err)
       setError(err instanceof Error ? err.message : 'Failed to load torrents')
     } finally {
-      setIsLoading(false)
+      if (!silent) {
+        setIsLoading(false)
+      }
     }
   }, [])
 
@@ -34,17 +57,24 @@ export function useTorrents() {
 
     // Subscribe to real-time updates
     const unsubscribe = pb.collection('torrents').subscribe('*', (e) => {
-      const record = e.record as unknown as Torrent
-      
+      const record = normalizeTorrent(e.record as RecordModel<Torrent>)
+
+      if (record.status === 'removed') {
+        setTorrents(prev => prev.filter(t => t.id !== record.id))
+        return
+      }
+
       if (e.action === 'create') {
-        setTorrents(prev => [record, ...prev])
+        setTorrents(prev => sortByUpdated([record, ...prev]))
       } else if (e.action === 'update') {
-        // If a torrent gets marked as removed, drop it from the list immediately
-        if ((record as any).status === 'removed') {
-          setTorrents(prev => prev.filter(t => t.id !== record.id))
-        } else {
-          setTorrents(prev => prev.map(t => t.id === record.id ? record : t))
-        }
+        setTorrents(prev => {
+          const exists = prev.some(t => t.id === record.id)
+          if (!exists) {
+            return sortByUpdated([record, ...prev])
+          }
+
+          return sortByUpdated(prev.map(t => (t.id === record.id ? record : t)))
+        })
       } else if (e.action === 'delete') {
         setTorrents(prev => prev.filter(t => t.id !== record.id))
       }
@@ -70,12 +100,13 @@ export function useTorrents() {
         throw new Error('Failed to sync torrents')
       }
       
-      // Data will be updated via real-time subscription
+      // Refresh torrents after sync to ensure UI stays in sync
+      await loadTorrents({ silent: true })
     } catch (err) {
       console.error('Failed to force sync:', err)
       setError(err instanceof Error ? err.message : 'Failed to sync torrents')
     }
-  }, [])
+  }, [loadTorrents])
 
   // Control torrent (start/stop/remove)
   const controlTorrent = useCallback(async (id: string, action: 'start' | 'stop' | 'remove') => {
