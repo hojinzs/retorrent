@@ -30,7 +30,7 @@ export function formatBytes(bytes: number, decimals?: number): string {
       : value >= 10
         ? 1
         : 2)
-  const formattedValue = Number(value.toFixed(defaultDecimals)) * Math.sign(bytes || 1)
+  const formattedValue = Number(value.toFixed(defaultDecimals)) * Math.sign(bytes)
 
   return `${formattedValue} ${BYTE_UNITS[unitIndex]}`
 }
