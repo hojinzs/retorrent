@@ -74,7 +74,7 @@ export function useTorrents() {
       }
     })
 
-    worker.postMessage({ type: 'START', payload: { interval: WORKER_POLL_INTERVAL } })
+    worker.postMessage({ type: 'START' })
 
     const unsubscribeAuth = pb.authStore.onChange(() => {
       worker.postMessage({
