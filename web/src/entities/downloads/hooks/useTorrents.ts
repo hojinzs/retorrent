@@ -2,6 +2,12 @@ import { useEffect, useState, useCallback } from 'react'
 import pb from '@shared/lib/pocketbase'
 import type { Torrent } from '../model'
 
+type TorrentWorkerMessage =
+  | { type: 'TORRENTS'; payload: Torrent[] }
+  | { type: 'ERROR'; payload: string }
+
+const WORKER_POLL_INTERVAL = 15_000
+
 export function useTorrents() {
   const [torrents, setTorrents] = useState<Torrent[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -24,6 +30,64 @@ export function useTorrents() {
       setError(err instanceof Error ? err.message : 'Failed to load torrents')
     } finally {
       setIsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof Worker === 'undefined') {
+      return
+    }
+
+    const worker = new Worker(new URL('../workers/torrentSyncWorker.ts', import.meta.url), {
+      type: 'module'
+    })
+
+    const getAuthCookie = () => {
+      if (typeof pb.authStore.exportToCookie === 'function') {
+        return pb.authStore.exportToCookie({ httpOnly: false })
+      }
+
+      return ''
+    }
+
+    const handleWorkerMessage = (event: MessageEvent<TorrentWorkerMessage>) => {
+      const message = event.data
+
+      if (message.type === 'TORRENTS') {
+        setTorrents(message.payload)
+        setError(null)
+      } else if (message.type === 'ERROR') {
+        setError(message.payload)
+      }
+    }
+
+    worker.addEventListener('message', handleWorkerMessage)
+
+    const baseUrl = pb.baseURL || (typeof window !== 'undefined' ? window.location.origin : '')
+
+    worker.postMessage({
+      type: 'INIT',
+      payload: {
+        baseUrl,
+        authCookie: getAuthCookie(),
+        interval: WORKER_POLL_INTERVAL
+      }
+    })
+
+    worker.postMessage({ type: 'START', payload: { interval: WORKER_POLL_INTERVAL } })
+
+    const unsubscribeAuth = pb.authStore.onChange(() => {
+      worker.postMessage({
+        type: 'AUTH_UPDATE',
+        payload: { authCookie: getAuthCookie() }
+      })
+    }, false)
+
+    return () => {
+      unsubscribeAuth()
+      worker.postMessage({ type: 'STOP' })
+      worker.removeEventListener('message', handleWorkerMessage)
+      worker.terminate()
     }
   }, [])
 
