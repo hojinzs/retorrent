@@ -3,6 +3,7 @@ import { Button } from "@shared/components/ui/button"
 import { Card } from "@shared/components/ui/card"
 import { Checkbox } from "@shared/components/ui/checkbox"
 import { Progress } from "@shared/components/ui/progress"
+import { formatBytes } from "@shared/lib/utils"
 import type {Torrent, TorrentStatus} from "../model"
 
 interface DownloadItemCardProps {
@@ -109,10 +110,3 @@ function StatusBadge({ status }: { status: TorrentStatus }) {
   )
 }
 
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 B'
-  const k = 1024
-  const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-}

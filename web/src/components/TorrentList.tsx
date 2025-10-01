@@ -9,6 +9,7 @@ import { AddTorrentDialog } from "./AddTorrentDialog";
 import { useTorrents } from "../entities/downloads/hooks/useTorrents";
 import { TorrentRemoveDialog } from "../entities/downloads/components/TorrentRemoveDialog";
 import { RefreshCw, WifiOff } from "lucide-react";
+import { formatBytes } from "@shared/lib/utils";
 
 interface TorrentListProps {
   isMobile: boolean;
@@ -19,9 +20,9 @@ const convertTorrentData = (backendTorrent: any): TorrentData => ({
   id: backendTorrent.id,
   name: backendTorrent.name,
   progress: Math.round(backendTorrent.percentDone * 100),
-  downloadSpeed: backendTorrent.rateDownload > 0 ? `${(backendTorrent.rateDownload / 1024 / 1024).toFixed(1)} MB/s` : '0 KB/s',
-  uploadSpeed: backendTorrent.rateUpload > 0 ? `${(backendTorrent.rateUpload / 1024 / 1024).toFixed(1)} MB/s` : '0 KB/s',
-  size: `${(backendTorrent.sizeWhenDone / 1024 / 1024 / 1024).toFixed(1)} GB`,
+  downloadSpeed: `${formatBytes(backendTorrent.rateDownload)}/s`,
+  uploadSpeed: `${formatBytes(backendTorrent.rateUpload)}/s`,
+  size: formatBytes(backendTorrent.sizeWhenDone),
   status: backendTorrent.status === 'download' ? 'downloading' :
           backendTorrent.status === 'seed' ? 'seeding' :
           backendTorrent.status === 'stopped' ? 'paused' : 'completed',
