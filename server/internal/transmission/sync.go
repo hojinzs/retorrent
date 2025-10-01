@@ -211,16 +211,14 @@ func (s *SyncService) updateTorrentsInDB(torrents []*TorrentData) error {
 	// Hard delete records for torrents that no longer exist in Transmission
 	for _, record := range existingRecords {
 		hash := record.GetString("hash")
-		if hash != "" && currentHashes[hash] {
-			continue
-		}
-
-		// Torrent was removed from Transmission -> delete the DB record
-		if err := s.app.Delete(record); err != nil {
-			if hash != "" {
-				log.Printf("Failed to delete torrent record (hash: %s): %v", hash, err)
-			} else {
-				log.Printf("Failed to delete torrent record (id: %s): %v", record.Id, err)
+		if hash != "" && !currentHashes[hash] {
+			// Torrent was removed from Transmission -> delete the DB record
+			if err := s.app.Delete(record); err != nil {
+				if hash != "" {
+					log.Printf("Failed to delete torrent record (hash: %s): %v", hash, err)
+				} else {
+					log.Printf("Failed to delete torrent record (id: %s): %v", record.Id, err)
+				}
 			}
 		}
 	}
