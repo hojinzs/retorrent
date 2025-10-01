@@ -8,22 +8,28 @@ export function useTorrents() {
   const [error, setError] = useState<string | null>(null)
 
   // Load initial data
-  const loadTorrents = useCallback(async () => {
+  const loadTorrents = useCallback(async (options?: { silent?: boolean }) => {
+    const silent = options?.silent ?? false
+
     try {
-      setIsLoading(true)
+      if (!silent) {
+        setIsLoading(true)
+      }
       setError(null)
-      
+
       const records = await pb.collection('torrents').getFullList<Torrent>({
         sort: '-updated',
         filter: 'status != "removed"'
       })
-      
+
       setTorrents(records)
     } catch (err) {
       console.error('Failed to load torrents:', err)
       setError(err instanceof Error ? err.message : 'Failed to load torrents')
     } finally {
-      setIsLoading(false)
+      if (!silent) {
+        setIsLoading(false)
+      }
     }
   }, [])
 
@@ -70,12 +76,13 @@ export function useTorrents() {
         throw new Error('Failed to sync torrents')
       }
       
-      // Data will be updated via real-time subscription
+      // Refresh torrents after sync to ensure UI stays in sync
+      await loadTorrents({ silent: true })
     } catch (err) {
       console.error('Failed to force sync:', err)
       setError(err instanceof Error ? err.message : 'Failed to sync torrents')
     }
-  }, [])
+  }, [loadTorrents])
 
   // Control torrent (start/stop/remove)
   const controlTorrent = useCallback(async (id: string, action: 'start' | 'stop' | 'remove') => {
