@@ -10,6 +10,7 @@ import { useTorrents } from "../entities/downloads/hooks/useTorrents"
 import { TorrentRemoveDialog } from "../entities/downloads/components/TorrentRemoveDialog"
 import { RefreshCw, WifiOff } from "lucide-react"
 import { useState, useCallback } from "react"
+import { formatBytes } from "@shared/lib/utils"
 
 // Convert backend torrent data to TorrentData format for the TorrentItem component
 const convertTorrentData = (backendTorrent: any): TorrentData => {
@@ -29,9 +30,9 @@ const convertTorrentData = (backendTorrent: any): TorrentData => {
     id: backendTorrent.id,
     name: backendTorrent.name,
     progress: Math.round(backendTorrent.percentDone * 100),
-    downloadSpeed: backendTorrent.rateDownload > 0 ? `${(backendTorrent.rateDownload / 1024 / 1024).toFixed(1)} MB/s` : '0 KB/s',
-    uploadSpeed: backendTorrent.rateUpload > 0 ? `${(backendTorrent.rateUpload / 1024 / 1024).toFixed(1)} MB/s` : '0 KB/s',
-    size: `${(backendTorrent.sizeWhenDone / 1024 / 1024 / 1024).toFixed(1)} GB`,
+    downloadSpeed: `${formatBytes(backendTorrent.rateDownload)}/s`,
+    uploadSpeed: `${formatBytes(backendTorrent.rateUpload)}/s`,
+    size: formatBytes(backendTorrent.sizeWhenDone),
     status,
     eta: backendTorrent.eta > 0 ? `${Math.round(backendTorrent.eta / 60)}m ${backendTorrent.eta % 60}s` : '∞'
   };
