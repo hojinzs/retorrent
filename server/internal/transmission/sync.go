@@ -233,7 +233,7 @@ func (s *SyncService) updateTorrentRecord(record *core.Record, torrent *TorrentD
 	changed := false
 
 	// Check metadata fields (important for magnet torrents that get metadata later)
-	if record.GetString("name") != torrent.Name {
+	if torrent.Name != "" && record.GetString("name") != torrent.Name {
 		record.Set("name", torrent.Name)
 		changed = true
 	}
@@ -255,6 +255,11 @@ func (s *SyncService) updateTorrentRecord(record *core.Record, torrent *TorrentD
 
 	if record.GetFloat("percentDone") != torrent.PercentDone {
 		record.Set("percentDone", torrent.PercentDone)
+		changed = true
+	}
+
+	if torrent.HashString != "" && record.GetString("hash") != torrent.HashString {
+		record.Set("hash", torrent.HashString)
 		changed = true
 	}
 
@@ -306,9 +311,30 @@ func (s *SyncService) updateTorrentRecord(record *core.Record, torrent *TorrentD
 func (s *SyncService) createTorrentRecord(collection *core.Collection, torrent *TorrentData) error {
 	record := core.NewRecord(collection)
 
+	name := torrent.Name
+	if name == "" {
+		switch {
+		case torrent.HashString != "":
+			name = torrent.HashString
+		case torrent.ID != 0:
+			name = fmt.Sprintf("Torrent %d", torrent.ID)
+		default:
+			name = "Pending torrent"
+		}
+	}
+
+	hash := torrent.HashString
+	if hash == "" {
+		if torrent.ID != 0 {
+			hash = fmt.Sprintf("pending-%d", torrent.ID)
+		} else {
+			hash = fmt.Sprintf("pending-%d", time.Now().UnixNano())
+		}
+	}
+
 	record.Set("transmissionId", torrent.ID)
-	record.Set("name", torrent.Name)
-	record.Set("hash", torrent.HashString)
+	record.Set("name", name)
+	record.Set("hash", hash)
 	record.Set("status", string(torrent.Status))
 	record.Set("percentDone", torrent.PercentDone)
 	record.Set("sizeWhenDone", torrent.SizeWhenDone)
