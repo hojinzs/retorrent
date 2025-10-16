@@ -23,6 +23,7 @@ func TestUpdateTorrentRecordMetadata(t *testing.T) {
 	})
 	collection.Fields.Add(&core.NumberField{Name: "percentDone", Required: false})
 	collection.Fields.Add(&core.NumberField{Name: "transmissionId", Required: true})
+	collection.Fields.Add(&core.TextField{Name: "hash", Required: false, Max: 255})
 	collection.Fields.Add(&core.NumberField{Name: "rateDownload", Required: false})
 	collection.Fields.Add(&core.NumberField{Name: "rateUpload", Required: false})
 	collection.Fields.Add(&core.NumberField{Name: "uploadRatio", Required: false})
@@ -50,6 +51,7 @@ func TestUpdateTorrentRecordMetadata(t *testing.T) {
 	record.Set("totalSize", int64(0))                          // No size info yet
 	record.Set("status", "download")
 	record.Set("percentDone", 0.0)
+	record.Set("hash", "pending-1")
 	record.Set("rateDownload", int64(0))
 	record.Set("rateUpload", int64(0))
 	record.Set("uploadRatio", 0.0)
@@ -102,5 +104,9 @@ func TestUpdateTorrentRecordMetadata(t *testing.T) {
 
 	if record.GetFloat("percentDone") != 0.25 {
 		t.Errorf("PercentDone was not updated. Expected: 0.25, got: %f", record.GetFloat("percentDone"))
+	}
+
+	if record.GetString("hash") != "abcdef1234567890" {
+		t.Errorf("Hash was not updated. Expected: 'abcdef1234567890', got: '%s'", record.GetString("hash"))
 	}
 }
