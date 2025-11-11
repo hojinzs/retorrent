@@ -325,11 +325,7 @@ func (s *SyncService) createTorrentRecord(collection *core.Collection, torrent *
 
 	hash := torrent.HashString
 	if hash == "" {
-		if torrent.ID != 0 {
-			hash = fmt.Sprintf("pending-%d", torrent.ID)
-		} else {
-			hash = fmt.Sprintf("pending-%d", time.Now().UnixNano())
-		}
+		hash = generatePlaceholderHash(torrent.ID)
 	}
 
 	record.Set("transmissionId", torrent.ID)
