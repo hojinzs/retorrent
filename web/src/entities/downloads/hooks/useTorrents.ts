@@ -29,30 +29,36 @@ export function useTorrents() {
 
   // Subscribe to real-time updates
   useEffect(() => {
-    // Load initial data
-    loadTorrents()
+    let unsubscribe: (() => void) | undefined
 
-    // Subscribe to real-time updates
-    const unsubscribe = pb.collection('torrents').subscribe('*', (e) => {
-      const record = e.record as unknown as Torrent
-      
-      if (e.action === 'create') {
-        setTorrents(prev => [record, ...prev])
-      } else if (e.action === 'update') {
-        // If a torrent gets marked as removed, drop it from the list immediately
-        if ((record as any).status === 'removed') {
+    const init = async () => {
+      // Load initial data
+      await loadTorrents()
+
+      // Subscribe to real-time updates
+      unsubscribe = await pb.collection('torrents').subscribe('*', (e) => {
+        const record = e.record as unknown as Torrent
+
+        if (e.action === 'create') {
+          setTorrents(prev => [record, ...prev])
+        } else if (e.action === 'update') {
+          // If a torrent gets marked as removed, drop it from the list immediately
+          if ((record as any).status === 'removed') {
+            setTorrents(prev => prev.filter(t => t.id !== record.id))
+          } else {
+            setTorrents(prev => prev.map(t => t.id === record.id ? record : t))
+          }
+        } else if (e.action === 'delete') {
           setTorrents(prev => prev.filter(t => t.id !== record.id))
-        } else {
-          setTorrents(prev => prev.map(t => t.id === record.id ? record : t))
         }
-      } else if (e.action === 'delete') {
-        setTorrents(prev => prev.filter(t => t.id !== record.id))
-      }
-    })
+      })
+    }
+
+    init()
 
     // Cleanup subscription on unmount
     return () => {
-      unsubscribe?.then(unsub => unsub?.())
+      unsubscribe?.()
     }
   }, [loadTorrents])
 
