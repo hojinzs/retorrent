@@ -40,30 +40,44 @@ export function useTorrents() {
 
         // Subscribe to real-time updates
         console.log('[useTorrents] Setting up real-time subscription...')
-        unsubscribe = await pb.collection('torrents').subscribe('*', (e) => {
-          console.log('[useTorrents] Received real-time event:', e.action, e.record)
-          const record = e.record as unknown as Torrent
+        console.log('[useTorrents] Auth status:', pb.authStore.record ? 'Authenticated' : 'Not authenticated')
+        console.log('[useTorrents] Auth user:', pb.authStore.record?.id)
 
-          if (e.action === 'create') {
-            console.log('[useTorrents] Adding new torrent to list:', record.name)
-            setTorrents(prev => [record, ...prev])
-          } else if (e.action === 'update') {
-            console.log('[useTorrents] Updating torrent:', record.name, 'status:', record.status)
-            // If a torrent gets marked as removed, drop it from the list immediately
-            if ((record as any).status === 'removed') {
-              console.log('[useTorrents] Removing torrent from list:', record.name)
+        try {
+          unsubscribe = await pb.collection('torrents').subscribe('*', (e) => {
+            console.log('[useTorrents] Received real-time event:', e.action, e.record)
+            const record = e.record as unknown as Torrent
+
+            if (e.action === 'create') {
+              console.log('[useTorrents] Adding new torrent to list:', record.name)
+              setTorrents(prev => [record, ...prev])
+            } else if (e.action === 'update') {
+              console.log('[useTorrents] Updating torrent:', record.name, 'status:', record.status)
+              // If a torrent gets marked as removed, drop it from the list immediately
+              if ((record as any).status === 'removed') {
+                console.log('[useTorrents] Removing torrent from list:', record.name)
+                setTorrents(prev => prev.filter(t => t.id !== record.id))
+              } else {
+                setTorrents(prev => prev.map(t => t.id === record.id ? record : t))
+              }
+            } else if (e.action === 'delete') {
+              console.log('[useTorrents] Deleting torrent from list:', record.id)
               setTorrents(prev => prev.filter(t => t.id !== record.id))
-            } else {
-              setTorrents(prev => prev.map(t => t.id === record.id ? record : t))
             }
-          } else if (e.action === 'delete') {
-            console.log('[useTorrents] Deleting torrent from list:', record.id)
-            setTorrents(prev => prev.filter(t => t.id !== record.id))
-          }
-        })
-        console.log('[useTorrents] Real-time subscription established successfully')
+          })
+          console.log('[useTorrents] Real-time subscription established successfully')
+        } catch (subscribeError) {
+          console.error('[useTorrents] Subscribe error:', subscribeError)
+          console.error('[useTorrents] Error details:', {
+            message: subscribeError instanceof Error ? subscribeError.message : String(subscribeError),
+            name: subscribeError instanceof Error ? subscribeError.name : typeof subscribeError
+          })
+          // Re-throw to be caught by outer catch
+          throw subscribeError
+        }
       } catch (err) {
         console.error('[useTorrents] Failed to setup subscription:', err)
+        console.error('[useTorrents] Will fall back to polling via forceSync')
       }
     }
 
