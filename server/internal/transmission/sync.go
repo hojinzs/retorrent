@@ -301,7 +301,13 @@ func (s *SyncService) updateTorrentRecord(record *core.Record, torrent *TorrentD
 	// Only save if there were significant changes or if it's been a while
 	lastUpdated := record.GetDateTime("updated")
 	if changed || time.Since(lastUpdated.Time()) > 5*time.Minute {
-		return s.app.Save(record)
+		log.Printf("[Sync] Saving updated torrent: %s (ID: %s, changed: %v)", torrent.Name, record.Id, changed)
+		if err := s.app.Save(record); err != nil {
+			log.Printf("[Sync] Failed to save torrent: %v", err)
+			return err
+		}
+		log.Printf("[Sync] Successfully saved torrent: %s", torrent.Name)
+		return nil
 	}
 
 	return nil
@@ -352,7 +358,13 @@ func (s *SyncService) createTorrentRecord(collection *core.Collection, torrent *
 		record.Set("doneDate", *torrent.DoneDate)
 	}
 
-	return s.app.Save(record)
+	log.Printf("[Sync] Creating new torrent record: %s (Transmission ID: %d)", name, torrent.ID)
+	if err := s.app.Save(record); err != nil {
+		log.Printf("[Sync] Failed to create torrent: %v", err)
+		return err
+	}
+	log.Printf("[Sync] Successfully created torrent: %s (PocketBase ID: %s)", name, record.Id)
+	return nil
 }
 
 // ForceSync triggers an immediate synchronization
