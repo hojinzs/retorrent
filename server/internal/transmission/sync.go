@@ -359,3 +359,8 @@ func (s *SyncService) createTorrentRecord(collection *core.Collection, torrent *
 func (s *SyncService) ForceSync() error {
 	return s.syncOnce()
 }
+
+// generatePlaceholderHash generates a placeholder hash for torrents without metadata
+func generatePlaceholderHash(id int64) string {
+	return fmt.Sprintf("placeholder-%d", id)
+}
