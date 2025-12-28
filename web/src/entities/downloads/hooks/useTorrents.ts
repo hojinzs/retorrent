@@ -6,7 +6,6 @@ export function useTorrents() {
   const [torrents, setTorrents] = useState<Torrent[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [isRealtimeConnected, setIsRealtimeConnected] = useState(false)
 
   // Load initial data
   const loadTorrents = useCallback(async () => {
@@ -67,7 +66,6 @@ export function useTorrents() {
             }
           })
           console.log('[useTorrents] Real-time subscription established successfully')
-          setIsRealtimeConnected(true)
         } catch (subscribeError) {
           console.error('[useTorrents] Subscribe error:', subscribeError)
           console.error('[useTorrents] Error details:', {
@@ -79,8 +77,7 @@ export function useTorrents() {
         }
       } catch (err) {
         console.error('[useTorrents] Failed to setup subscription:', err)
-        console.error('[useTorrents] Will fall back to polling via forceSync')
-        setIsRealtimeConnected(false)
+        console.error('[useTorrents] Realtime connection failed, will rely on manual refresh')
       }
     }
 
@@ -94,23 +91,6 @@ export function useTorrents() {
       }
     }
   }, [loadTorrents])
-
-  // Polling fallback when realtime is not connected
-  useEffect(() => {
-    if (!isRealtimeConnected) {
-      console.log('[useTorrents] Realtime not connected, starting polling (every 5 seconds)')
-
-      const pollInterval = setInterval(async () => {
-        console.log('[useTorrents] Polling for updates...')
-        await loadTorrents()
-      }, 5000) // Poll every 5 seconds
-
-      return () => {
-        console.log('[useTorrents] Stopping polling')
-        clearInterval(pollInterval)
-      }
-    }
-  }, [isRealtimeConnected, loadTorrents])
 
   // Force sync with Transmission
   const forceSync = useCallback(async () => {
