@@ -29,53 +29,93 @@ export function useTorrents() {
 
   // Subscribe to real-time updates
   useEffect(() => {
-    // Load initial data
-    loadTorrents()
+    let unsubscribe: (() => void) | undefined
 
-    // Subscribe to real-time updates
-    const unsubscribe = pb.collection('torrents').subscribe('*', (e) => {
-      const record = e.record as unknown as Torrent
-      
-      if (e.action === 'create') {
-        setTorrents(prev => [record, ...prev])
-      } else if (e.action === 'update') {
-        // If a torrent gets marked as removed, drop it from the list immediately
-        if ((record as any).status === 'removed') {
-          setTorrents(prev => prev.filter(t => t.id !== record.id))
-        } else {
-          setTorrents(prev => prev.map(t => t.id === record.id ? record : t))
+    const init = async () => {
+      try {
+        // Load initial data
+        console.log('[useTorrents] Loading initial torrents...')
+        await loadTorrents()
+        console.log('[useTorrents] Initial torrents loaded')
+
+        // Subscribe to real-time updates
+        console.log('[useTorrents] Setting up real-time subscription...')
+        console.log('[useTorrents] Auth status:', pb.authStore.record ? 'Authenticated' : 'Not authenticated')
+        console.log('[useTorrents] Auth user:', pb.authStore.record?.id)
+
+        try {
+          unsubscribe = await pb.collection('torrents').subscribe('*', (e) => {
+            console.log('[useTorrents] Received real-time event:', e.action, e.record)
+            const record = e.record as unknown as Torrent
+
+            if (e.action === 'create') {
+              console.log('[useTorrents] Adding new torrent to list:', record.name)
+              setTorrents(prev => [record, ...prev])
+            } else if (e.action === 'update') {
+              console.log('[useTorrents] Updating torrent:', record.name, 'status:', record.status)
+              // If a torrent gets marked as removed, drop it from the list immediately
+              if ((record as any).status === 'removed') {
+                console.log('[useTorrents] Removing torrent from list:', record.name)
+                setTorrents(prev => prev.filter(t => t.id !== record.id))
+              } else {
+                setTorrents(prev => prev.map(t => t.id === record.id ? record : t))
+              }
+            } else if (e.action === 'delete') {
+              console.log('[useTorrents] Deleting torrent from list:', record.id)
+              setTorrents(prev => prev.filter(t => t.id !== record.id))
+            }
+          })
+          console.log('[useTorrents] Real-time subscription established successfully')
+        } catch (subscribeError) {
+          console.error('[useTorrents] Subscribe error:', subscribeError)
+          console.error('[useTorrents] Error details:', {
+            message: subscribeError instanceof Error ? subscribeError.message : String(subscribeError),
+            name: subscribeError instanceof Error ? subscribeError.name : typeof subscribeError
+          })
+          // Re-throw to be caught by outer catch
+          throw subscribeError
         }
-      } else if (e.action === 'delete') {
-        setTorrents(prev => prev.filter(t => t.id !== record.id))
+      } catch (err) {
+        console.error('[useTorrents] Failed to setup subscription:', err)
+        console.error('[useTorrents] Realtime connection failed, will rely on manual refresh')
       }
-    })
+    }
+
+    init()
 
     // Cleanup subscription on unmount
     return () => {
-      unsubscribe?.then(unsub => unsub?.())
+      if (unsubscribe) {
+        console.log('[useTorrents] Cleaning up subscription')
+        unsubscribe()
+      }
     }
   }, [loadTorrents])
 
   // Force sync with Transmission
   const forceSync = useCallback(async () => {
     try {
+      console.log('[useTorrents] Force syncing...')
       const response = await fetch('/api/torrents/sync', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
       })
-      
+
       if (!response.ok) {
         throw new Error('Failed to sync torrents')
       }
-      
-      // Data will be updated via real-time subscription
+
+      console.log('[useTorrents] Force sync completed, reloading torrents...')
+      // Reload data to ensure UI is updated
+      await loadTorrents()
+      console.log('[useTorrents] Torrents reloaded after sync')
     } catch (err) {
       console.error('Failed to force sync:', err)
       setError(err instanceof Error ? err.message : 'Failed to sync torrents')
     }
-  }, [])
+  }, [loadTorrents])
 
   // Control torrent (start/stop/remove)
   const controlTorrent = useCallback(async (id: string, action: 'start' | 'stop' | 'remove') => {
