@@ -8,12 +8,14 @@ import { AddTorrentDialog } from "../components/AddTorrentDialog"
 import { useIsMobile } from "@shared/hooks/use-mobile"
 import { useTorrents } from "../entities/downloads/hooks/useTorrents"
 import { TorrentRemoveDialog } from "../entities/downloads/components/TorrentRemoveDialog"
+import { TorrentDetailsDialog } from "../entities/downloads/components/TorrentDetailsDialog"
 import { RefreshCw, WifiOff } from "lucide-react"
 import { useState, useCallback } from "react"
 import { formatBytes } from "@shared/lib/utils"
+import type { Torrent } from "../entities/downloads/model"
 
 // Convert backend torrent data to TorrentData format for the TorrentItem component
-const convertTorrentData = (backendTorrent: any): TorrentData => {
+const convertTorrentData = (backendTorrent: Torrent): TorrentData => {
   let status: 'downloading' | 'seeding' | 'paused' | 'completed';
   
   if (backendTorrent.status === 'download') {
@@ -34,7 +36,8 @@ const convertTorrentData = (backendTorrent: any): TorrentData => {
     uploadSpeed: `${formatBytes(backendTorrent.rateUpload)}/s`,
     size: formatBytes(backendTorrent.sizeWhenDone),
     status,
-    eta: backendTorrent.eta > 0 ? `${Math.round(backendTorrent.eta / 60)}m ${backendTorrent.eta % 60}s` : '∞'
+    eta: backendTorrent.eta > 0 ? `${Math.round(backendTorrent.eta / 60)}m ${backendTorrent.eta % 60}s` : '∞',
+    ratio: backendTorrent.uploadRatio
   };
 };
 
@@ -48,9 +51,13 @@ export function DownloadsPage() {
   const [isSelectionMode, setIsSelectionMode] = useState(false)
   const [showRemoveDialog, setShowRemoveDialog] = useState(false)
   const [removeTargets, setRemoveTargets] = useState<any[]>([])
+  const [detailsTorrentId, setDetailsTorrentId] = useState<string | null>(null)
 
   // Convert backend data to TorrentData format
   const torrents = backendTorrents.map(convertTorrentData)
+  const detailsTorrent = detailsTorrentId
+    ? backendTorrents.find(torrent => torrent.id === detailsTorrentId) ?? null
+    : null
 
   // Filter torrents by search and tab
   const filteredTorrents = torrents.filter(torrent => {
@@ -314,6 +321,7 @@ export function DownloadsPage() {
                 key={torrent.id}
                 torrent={torrent}
                 onAction={handleTorrentAction}
+                onOpenDetails={setDetailsTorrentId}
                 showSelectionCheckbox={!isMobile || isSelectionMode}
                 selectionMode={isMobile && isSelectionMode}
                 selected={selectedTorrents.includes(torrent.id)}
@@ -340,6 +348,16 @@ export function DownloadsPage() {
         }}
         torrents={removeTargets}
         onRemove={handleRemoveConfirm}
+      />
+
+      <TorrentDetailsDialog
+        open={!!detailsTorrent}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDetailsTorrentId(null)
+          }
+        }}
+        torrent={detailsTorrent}
       />
     </div>
   )
