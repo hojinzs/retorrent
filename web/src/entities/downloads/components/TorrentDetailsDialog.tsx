@@ -88,6 +88,8 @@ type TransmissionTrackerStat = {
   seederCount?: number
 }
 
+type TransmissionTrackerEntry = TransmissionTracker | TransmissionTrackerStat
+
 type TransmissionData = {
   downloadDir?: string
   creator?: string
@@ -111,6 +113,10 @@ const StatItem = ({ label, value }: { label: string; value: string }) => (
   </div>
 )
 
+const isTrackerStat = (tracker: TransmissionTrackerEntry): tracker is TransmissionTrackerStat => {
+  return "host" in tracker
+}
+
 interface TorrentDetailsDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -126,7 +132,7 @@ export function TorrentDetailsDialog({ open, onOpenChange, torrent }: TorrentDet
   const transmission = torrent.transmissionData as TransmissionData | undefined
   const files = transmission?.files ?? []
   const peers = transmission?.peers ?? []
-  const trackers = transmission?.trackerStats ?? transmission?.trackers ?? []
+  const trackers: TransmissionTrackerEntry[] = transmission?.trackerStats ?? transmission?.trackers ?? []
 
   const remainingBytes = Math.max(0, torrent.sizeWhenDone - torrent.downloadedEver)
 
@@ -260,8 +266,11 @@ export function TorrentDetailsDialog({ open, onOpenChange, torrent }: TorrentDet
             ) : (
               <div className="space-y-3">
                 {trackers.map((tracker, index) => (
-                  <div key={`${"host" in tracker ? tracker.host : tracker.announce}-${index}`} className="rounded-lg border border-border/60 p-3 text-sm">
-                    {"host" in tracker ? (
+                  <div
+                    key={`${isTrackerStat(tracker) ? tracker.host : tracker.announce}-${index}`}
+                    className="rounded-lg border border-border/60 p-3 text-sm"
+                  >
+                    {isTrackerStat(tracker) ? (
                       <>
                         <div className="font-medium text-foreground">{tracker.host ?? "Unknown tracker"}</div>
                         <div className="mt-2 grid grid-cols-1 gap-2 text-xs text-muted-foreground md:grid-cols-3">
