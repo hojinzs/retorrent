@@ -8,6 +8,7 @@ import { Checkbox } from "@shared/components/ui/checkbox";
 import { AddTorrentDialog } from "./AddTorrentDialog";
 import { useTorrents } from "../entities/downloads/hooks/useTorrents";
 import { TorrentRemoveDialog } from "../entities/downloads/components/TorrentRemoveDialog";
+import { TorrentDetailsDialog } from "../entities/downloads/components/TorrentDetailsDialog";
 import { RefreshCw, WifiOff } from "lucide-react";
 import { formatBytes } from "@shared/lib/utils";
 
@@ -23,10 +24,20 @@ const convertTorrentData = (backendTorrent: any): TorrentData => ({
   downloadSpeed: `${formatBytes(backendTorrent.rateDownload)}/s`,
   uploadSpeed: `${formatBytes(backendTorrent.rateUpload)}/s`,
   size: formatBytes(backendTorrent.sizeWhenDone),
+  totalSize: formatBytes(backendTorrent.totalSize),
   status: backendTorrent.status === 'download' ? 'downloading' :
           backendTorrent.status === 'seed' ? 'seeding' :
           backendTorrent.status === 'stopped' ? 'paused' : 'completed',
-  eta: backendTorrent.eta > 0 ? `${Math.round(backendTorrent.eta / 60)}m ${backendTorrent.eta % 60}s` : '∞'
+  eta: backendTorrent.eta > 0 ? `${Math.round(backendTorrent.eta / 60)}m ${backendTorrent.eta % 60}s` : '∞',
+  ratio: backendTorrent.uploadRatio,
+  downloadedEver: formatBytes(backendTorrent.downloadedEver),
+  uploadedEver: formatBytes(backendTorrent.uploadedEver),
+  hash: backendTorrent.hash,
+  rawStatus: backendTorrent.status,
+  addedDate: backendTorrent.addedDate,
+  doneDate: backendTorrent.doneDate,
+  transmissionId: backendTorrent.transmissionId,
+  errorString: backendTorrent.errorString,
 });
 
 export function TorrentList({ isMobile }: TorrentListProps) {
@@ -38,6 +49,8 @@ export function TorrentList({ isMobile }: TorrentListProps) {
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [showRemoveDialog, setShowRemoveDialog] = useState(false);
   const [removeTargets, setRemoveTargets] = useState<any[]>([]);
+  const [detailsTorrentId, setDetailsTorrentId] = useState<string | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   // Convert backend data to TorrentData format
   const torrents = backendTorrents.map(convertTorrentData);
@@ -120,6 +133,13 @@ export function TorrentList({ isMobile }: TorrentListProps) {
     setShowRemoveDialog(false);
   };
 
+  const handleOpenDetails = (id: string) => {
+    setDetailsTorrentId(id);
+    setDetailsOpen(true);
+  };
+
+  const selectedTorrent = torrents.find(torrent => torrent.id === detailsTorrentId) ?? null;
+
   const toggleSelectionMode = () => {
     setIsSelectionMode(!isSelectionMode);
     if (isSelectionMode) {
@@ -164,6 +184,20 @@ export function TorrentList({ isMobile }: TorrentListProps) {
         }}
         torrents={removeTargets}
         onRemove={handleRemoveConfirm}
+      />
+
+      <TorrentDetailsDialog
+        open={detailsOpen}
+        onOpenChange={setDetailsOpen}
+        torrent={selectedTorrent}
+        onAction={(id, action) => {
+          if (action === 'play') handleResume(id);
+          else if (action === 'pause') handlePause(id);
+          else if (action === 'remove') {
+            setDetailsOpen(false);
+            handleRemove(id);
+          }
+        }}
       />
 
       {/* Mobile Add Torrent FAB */}
@@ -334,6 +368,7 @@ export function TorrentList({ isMobile }: TorrentListProps) {
                   else if (action === 'pause') handlePause(id);
                   else if (action === 'remove') handleRemove(id);
                 }}
+                onOpenDetails={() => handleOpenDetails(torrent.id)}
                 showSelectionCheckbox={!isMobile || isSelectionMode}
                 selectionMode={isMobile && isSelectionMode}
                 selected={selectedTorrents.includes(torrent.id)}

@@ -33,8 +33,18 @@ const convertTorrentData = (backendTorrent: any): TorrentData => {
     downloadSpeed: `${formatBytes(backendTorrent.rateDownload)}/s`,
     uploadSpeed: `${formatBytes(backendTorrent.rateUpload)}/s`,
     size: formatBytes(backendTorrent.sizeWhenDone),
+    totalSize: formatBytes(backendTorrent.totalSize),
     status,
-    eta: backendTorrent.eta > 0 ? `${Math.round(backendTorrent.eta / 60)}m ${backendTorrent.eta % 60}s` : '∞'
+    eta: backendTorrent.eta > 0 ? `${Math.round(backendTorrent.eta / 60)}m ${backendTorrent.eta % 60}s` : '∞',
+    ratio: backendTorrent.uploadRatio,
+    downloadedEver: formatBytes(backendTorrent.downloadedEver),
+    uploadedEver: formatBytes(backendTorrent.uploadedEver),
+    hash: backendTorrent.hash,
+    rawStatus: backendTorrent.status,
+    addedDate: backendTorrent.addedDate,
+    doneDate: backendTorrent.doneDate,
+    transmissionId: backendTorrent.transmissionId,
+    errorString: backendTorrent.errorString,
   };
 };
 

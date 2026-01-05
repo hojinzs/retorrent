@@ -4,7 +4,6 @@ import { Button } from "@shared/components/ui/button";
 import { Pause, Play, Trash2 } from "lucide-react";
 import { useIsMobile } from "@shared/hooks/use-mobile";
 import { Checkbox } from "@shared/components/ui/checkbox";
-import { Link } from "@tanstack/react-router";
 
 export interface TorrentData {
   id: string;
@@ -13,8 +12,18 @@ export interface TorrentData {
   downloadSpeed: string;
   uploadSpeed: string;
   size: string;
+  totalSize: string;
   status: 'downloading' | 'seeding' | 'paused' | 'completed';
   eta: string;
+  ratio: number;
+  downloadedEver: string;
+  uploadedEver: string;
+  hash: string;
+  rawStatus: string;
+  addedDate: string;
+  doneDate?: string;
+  transmissionId: number;
+  errorString?: string;
 }
 
 interface TorrentItemProps {
@@ -24,6 +33,7 @@ interface TorrentItemProps {
   selectionMode?: boolean;
   selected?: boolean;
   onSelectChange?: (checked: boolean) => void;
+  onOpenDetails?: () => void;
 }
 
 const ACTION_BUTTON_WIDTH = 88;
@@ -39,6 +49,7 @@ export function TorrentItem({
   selectionMode = false,
   selected = false,
   onSelectChange,
+  onOpenDetails,
 }: TorrentItemProps) {
   const isMobile = useIsMobile();
   const [translateX, setTranslateX] = React.useState(0);
@@ -144,6 +155,11 @@ export function TorrentItem({
     onSelectChange?.(checked);
   };
 
+  const handleOpenDetails = () => {
+    if (selectionMode) return;
+    onOpenDetails?.();
+  };
+
   const renderActionButton = (
     action: 'pause' | 'play' | 'remove',
     {
@@ -226,7 +242,7 @@ export function TorrentItem({
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <span>↓ {torrent.downloadSpeed}</span>
           <span>↑ {torrent.uploadSpeed}</span>
-          <span>Ratio: 0.0</span>
+          <span>Ratio: {torrent.ratio.toFixed(2)}</span>
         </div>
         <span>ETA: {torrent.eta}</span>
       </div>
@@ -255,23 +271,23 @@ export function TorrentItem({
         >
           {actionButtons}
         </div>
-        <Link to="." className="select-none">
-          <div
-            className="relative z-10 border border-border/30 bg-white/50 dark:bg-neutral-800/50 backdrop-blur-sm p-3 shadow-sm transition-transform duration-200 ease-out active:bg-white/75"
-            style={{ transform: `translateX(${translateX}px)` }}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-            onTouchCancel={handleTouchEnd}
-            onClick={() => {
-              if (isOpen) {
-                closeActions();
-              }
-            }}
-          >
-            {content}
-          </div>
-        </Link>
+        <div
+          className="relative z-10 border border-border/30 bg-white/50 dark:bg-neutral-800/50 backdrop-blur-sm p-3 shadow-sm transition-transform duration-200 ease-out active:bg-white/75"
+          style={{ transform: `translateX(${translateX}px)` }}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchEnd}
+          onClick={() => {
+            if (isOpen) {
+              closeActions();
+              return;
+            }
+            handleOpenDetails();
+          }}
+        >
+          {content}
+        </div>
       </div>
     );
   }
@@ -286,7 +302,7 @@ export function TorrentItem({
             aria-label="Select torrent"
           />
         </div>
-        <div className="flex-1 cursor-pointer">
+        <div className="flex-1 cursor-pointer" onClick={handleOpenDetails}>
           {content}
         </div>
         <div className="flex flex-row h-full items-center justify-center w-44 shrink-0 gap-2">
