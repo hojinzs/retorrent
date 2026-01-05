@@ -26,7 +26,8 @@ const convertTorrentData = (backendTorrent: any): TorrentData => ({
   status: backendTorrent.status === 'download' ? 'downloading' :
           backendTorrent.status === 'seed' ? 'seeding' :
           backendTorrent.status === 'stopped' ? 'paused' : 'completed',
-  eta: backendTorrent.eta > 0 ? `${Math.round(backendTorrent.eta / 60)}m ${backendTorrent.eta % 60}s` : '∞'
+  eta: backendTorrent.eta > 0 ? `${Math.round(backendTorrent.eta / 60)}m ${backendTorrent.eta % 60}s` : '∞',
+  ratio: backendTorrent.uploadRatio
 });
 
 export function TorrentList({ isMobile }: TorrentListProps) {

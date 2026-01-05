@@ -4,7 +4,6 @@ import { Button } from "@shared/components/ui/button";
 import { Pause, Play, Trash2 } from "lucide-react";
 import { useIsMobile } from "@shared/hooks/use-mobile";
 import { Checkbox } from "@shared/components/ui/checkbox";
-import { Link } from "@tanstack/react-router";
 
 export interface TorrentData {
   id: string;
@@ -15,11 +14,13 @@ export interface TorrentData {
   size: string;
   status: 'downloading' | 'seeding' | 'paused' | 'completed';
   eta: string;
+  ratio: number;
 }
 
 interface TorrentItemProps {
   torrent: TorrentData;
   onAction: (id: string, action: 'play' | 'pause' | 'remove') => void;
+  onOpenDetails?: (id: string) => void;
   showSelectionCheckbox?: boolean;
   selectionMode?: boolean;
   selected?: boolean;
@@ -35,6 +36,7 @@ type IconType = typeof Pause;
 export function TorrentItem({
   torrent,
   onAction,
+  onOpenDetails,
   showSelectionCheckbox = false,
   selectionMode = false,
   selected = false,
@@ -226,7 +228,7 @@ export function TorrentItem({
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <span>↓ {torrent.downloadSpeed}</span>
           <span>↑ {torrent.uploadSpeed}</span>
-          <span>Ratio: 0.0</span>
+          <span>Ratio: {torrent.ratio.toFixed(2)}</span>
         </div>
         <span>ETA: {torrent.eta}</span>
       </div>
@@ -255,7 +257,7 @@ export function TorrentItem({
         >
           {actionButtons}
         </div>
-        <Link to="." className="select-none">
+        <div className="select-none" role="button" tabIndex={0}>
           <div
             className="relative z-10 border border-border/30 bg-white/50 dark:bg-neutral-800/50 backdrop-blur-sm p-3 shadow-sm transition-transform duration-200 ease-out active:bg-white/75"
             style={{ transform: `translateX(${translateX}px)` }}
@@ -266,12 +268,21 @@ export function TorrentItem({
             onClick={() => {
               if (isOpen) {
                 closeActions();
+                return;
+              }
+
+              onOpenDetails?.(torrent.id);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                onOpenDetails?.(torrent.id);
               }
             }}
           >
             {content}
           </div>
-        </Link>
+        </div>
       </div>
     );
   }
@@ -286,9 +297,13 @@ export function TorrentItem({
             aria-label="Select torrent"
           />
         </div>
-        <div className="flex-1 cursor-pointer">
+        <button
+          type="button"
+          className="flex-1 cursor-pointer text-left"
+          onClick={() => onOpenDetails?.(torrent.id)}
+        >
           {content}
-        </div>
+        </button>
         <div className="flex flex-row h-full items-center justify-center w-44 shrink-0 gap-2">
           {actionButtons}
         </div>
